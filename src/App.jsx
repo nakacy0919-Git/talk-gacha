@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Sparkles, RefreshCcw, X, ArrowDown } from 'lucide-react';
+import { Sparkles, RefreshCcw, X, ArrowRight } from 'lucide-react';
 
+// --- データ定義: トークテーマのお題 ---
 const TALK_THEMES = [
   { id: 1, text: "人生で一番高かった買い物は？", category: "Money", color: "bg-yellow-400" },
   { id: 2, text: "子供の頃の将来の夢は？", category: "Past", color: "bg-blue-400" },
@@ -19,6 +20,7 @@ const TALK_THEMES = [
   { id: 15, text: "あなたの「座右の銘」は？", category: "Motto", color: "bg-rose-500" },
 ];
 
+// --- コンポーネント: カプセル (内部表示用) ---
 const CapsuleDisplay = ({ color, style, size = 48 }) => (
   <div 
     className="absolute rounded-full flex items-center justify-center overflow-hidden"
@@ -33,27 +35,26 @@ const CapsuleDisplay = ({ color, style, size = 48 }) => (
     <div className="w-full h-1/2 absolute top-0 bg-white/30 backdrop-blur-[0.5px]"></div>
     <div className="w-full h-[3%] bg-black/10 absolute top-1/2 -translate-y-1/2 z-10 box-border border-t border-white/20"></div>
     <div className="absolute top-[15%] left-[15%] w-[25%] h-[15%] bg-white rounded-full opacity-70 blur-[2px]"></div>
-    <div className="absolute bottom-[15%] right-[15%] w-[10%] h-[10%] bg-white rounded-full opacity-30 blur-[1px]"></div>
   </div>
 );
 
 export default function App() {
   const [rotation, setRotation] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
-  const [hasDispensed, setHasDispensed] = useState(false);
+  const [hasDispensed, setHasDispensed] = useState(false); // カプセルが出たか
   const [capsule, setCapsule] = useState(null);
-  const [isOpened, setIsOpened] = useState(false);
-  const [showModal, setShowModal] = useState(false);
+  const [showResult, setShowResult] = useState(false); // 結果画面（お題）を表示するか
   
   const knobRef = useRef(null);
   const lastAngleRef = useRef(0);
   const cumulativeRotationRef = useRef(0);
 
+  // ワイド画面用にカプセルを散らす
   const generateInventory = () => {
-    return Array.from({ length: 50 }).map((_, i) => ({
+    return Array.from({ length: 60 }).map((_, i) => ({
       id: i,
-      left: Math.random() * 90 + 5,
-      top: Math.random() * 60 + 35,
+      left: Math.random() * 94 + 3, // 横幅いっぱいに
+      top: Math.random() * 50 + 45, // 下半分に溜まる
       color: TALK_THEMES[i % TALK_THEMES.length].color,
       rotate: Math.random() * 360,
       zIndex: Math.floor(Math.random() * 20),
@@ -98,19 +99,22 @@ export default function App() {
     cumulativeRotationRef.current += delta;
     lastAngleRef.current = currentAngle;
 
-    if (Math.abs(cumulativeRotationRef.current) % 60 < 5 && navigator.vibrate) {
-      navigator.vibrate(10);
+    if (Math.abs(cumulativeRotationRef.current) % 45 < 5 && navigator.vibrate) {
+      navigator.vibrate(15); // 強めの振動
     }
     
-    if (Math.random() > 0.7) {
+    // ガラガラと中身が動く演出
+    if (Math.random() > 0.6) {
        setInventory(prev => prev.map(item => ({
          ...item,
-         rotate: item.rotate + (Math.random() - 0.5) * 5,
-         top: Math.min(95, Math.max(35, item.top + (Math.random() - 0.5) * (item.top > 80 ? 0.2 : 1)))
+         rotate: item.rotate + (Math.random() - 0.5) * 10,
+         left: Math.min(98, Math.max(2, item.left + (Math.random() - 0.5) * 1)),
+         top: Math.min(95, Math.max(45, item.top + (Math.random() - 0.5) * 0.5))
        })));
     }
 
-    if (cumulativeRotationRef.current > 340) {
+    // 360度回したら発射
+    if (cumulativeRotationRef.current > 360) {
       dispenseCapsule();
     }
   }, [isDragging, rotation, hasDispensed]);
@@ -125,21 +129,22 @@ export default function App() {
     
     const theme = TALK_THEMES[Math.floor(Math.random() * TALK_THEMES.length)];
     setCapsule(theme);
+    
+    // 在庫を減らす
     setInventory(prev => {
         const newInv = [...prev];
         newInv.pop(); 
         return newInv;
     });
 
-    if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
+    if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
   };
 
   const resetGacha = () => {
     setRotation(0);
     setHasDispensed(false);
     setCapsule(null);
-    setIsOpened(false);
-    setShowModal(false);
+    setShowResult(false);
     cumulativeRotationRef.current = 0;
     
     if (inventory.length < 30) {
@@ -163,195 +168,211 @@ export default function App() {
   }, [isDragging, handleMove]);
 
   return (
-    <div className="min-h-screen bg-slate-200 flex flex-col items-center justify-center p-4 font-sans text-slate-800 overflow-hidden select-none">
-      <div className="fixed inset-0 pointer-events-none opacity-20 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-slate-300 to-slate-400"></div>
+    <div className="min-h-screen bg-slate-800 flex flex-col items-center justify-center p-6 font-sans text-slate-800 overflow-hidden select-none">
+      
+      {/* Background Lighting Effect */}
+      <div className="fixed inset-0 pointer-events-none opacity-30 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-600 via-slate-800 to-slate-900"></div>
 
-      <div className="relative w-full max-w-[360px] bg-white rounded-[50px] shadow-[0_20px_50px_-12px_rgba(0,0,0,0.3)] border border-slate-100 overflow-hidden flex flex-col items-center z-10 ring-8 ring-slate-200/50">
+      {/* Main Machine Body - WIDE VERSION */}
+      <div className="relative w-full max-w-4xl bg-slate-100 rounded-[60px] shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)] border-4 border-slate-300 overflow-hidden flex flex-col z-10 ring-8 ring-slate-500/50">
         
-        <div className="w-full h-[400px] relative border-b-[12px] border-slate-200 overflow-hidden bg-slate-50">
-          <div className="absolute inset-0 z-20 pointer-events-none shadow-[inset_0_10px_30px_rgba(0,0,0,0.1)] rounded-t-[42px]"></div>
+        {/* Top: Showcase Window (Huge & Wide) */}
+        <div className="w-full h-[40vh] min-h-[300px] relative border-b-[16px] border-slate-300 overflow-hidden bg-slate-50">
           
+          {/* Machine Inner Shadow */}
+          <div className="absolute inset-0 z-20 pointer-events-none shadow-[inset_0_10px_40px_rgba(0,0,0,0.15)] rounded-t-[54px]"></div>
+          
+          {/* Inventory Background */}
           <div className="absolute inset-0 z-0 p-4 opacity-90">
-             <div className="absolute inset-2 bg-gradient-to-b from-slate-200/50 to-white rounded-[40px] border border-slate-100"></div>
+             <div className="absolute inset-3 bg-gradient-to-b from-slate-200/50 to-white/80 rounded-[50px] border-2 border-slate-200/50"></div>
           </div>
 
-          <div className="absolute inset-0 z-10 px-6 pb-2">
+          {/* Capsules */}
+          <div className="absolute inset-0 z-10 px-8 pb-4">
             {inventory.map((item) => (
               <CapsuleDisplay 
                 key={item.id}
                 color={item.color}
-                size={52 * item.scale}
+                size={56 * item.scale}
                 style={{
                   left: `${item.left}%`,
                   top: `${item.top}%`,
                   transform: `translate(-50%, -50%) rotate(${item.rotate}deg)`,
                   zIndex: item.zIndex,
-                  transition: 'top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                  transition: 'top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), left 0.4s ease'
                 }}
               />
             ))}
           </div>
 
-          <div className="absolute inset-0 z-30 pointer-events-none rounded-t-[42px]">
-             <div className="absolute top-4 right-8 w-24 h-64 bg-gradient-to-b from-white/70 to-transparent skew-x-[-20deg] rounded-full blur-[2px]"></div>
-             <div className="absolute top-4 left-6 w-3 h-32 bg-gradient-to-b from-white/50 to-transparent skew-x-[-20deg] rounded-full blur-[1px]"></div>
+          {/* Glass Reflections */}
+          <div className="absolute inset-0 z-30 pointer-events-none rounded-t-[54px]">
+             <div className="absolute top-0 right-[20%] w-32 h-[120%] bg-gradient-to-b from-white/40 to-transparent skew-x-[-25deg] blur-[4px]"></div>
+             <div className="absolute top-0 left-[10%] w-8 h-[80%] bg-gradient-to-b from-white/30 to-transparent skew-x-[-25deg] blur-[2px]"></div>
           </div>
         </div>
 
-        <div className="w-full bg-slate-50 py-8 flex flex-col items-center justify-center relative z-20 shadow-lg">
+        {/* Bottom: Control Panel & Handle Area */}
+        <div className="w-full h-auto min-h-[350px] bg-slate-100 py-6 flex flex-col items-center justify-center relative z-20 shadow-lg">
           
-          <div className="w-full h-1 bg-slate-200 absolute top-2"></div>
-          <div className="w-full h-1 bg-slate-200 absolute bottom-2"></div>
+          {/* Decorative Panel Lines */}
+          <div className="w-full h-2 bg-slate-300 absolute top-4"></div>
+          <div className="w-full h-2 bg-slate-300 absolute bottom-4"></div>
 
-          <div className="absolute top-4 right-6 bg-slate-200 px-4 py-1.5 rounded-lg shadow-inner border border-slate-300 flex items-center gap-2">
-            <div className="w-1.5 h-6 bg-slate-800 rounded-full"></div>
-            <div className="flex flex-col leading-none">
-                <span className="text-[9px] font-bold text-slate-500">INSERT COIN</span>
-                <span className="text-xs font-black text-slate-600">FREE</span>
-            </div>
+          <div className="flex w-full px-12 justify-between items-start absolute top-8">
+             {/* Left: Coin Slot */}
+             <div className="bg-slate-300 px-6 py-3 rounded-xl shadow-inner border-2 border-slate-400 flex items-center gap-3">
+                <div className="w-2 h-10 bg-slate-800 rounded-full shadow-[inset_0_2px_4px_rgba(0,0,0,0.5)]"></div>
+                <div className="flex flex-col leading-none">
+                    <span className="text-[10px] font-bold text-slate-500">INSERT COIN</span>
+                    <span className="text-sm font-black text-slate-600">FREE PLAY</span>
+                </div>
+             </div>
+             
+             {/* Right: Price */}
+             <div className="bg-pink-500 text-white px-5 py-2 rounded-lg shadow-lg transform rotate-3 border-2 border-pink-400">
+                  <span className="text-xl font-black">¥0</span>
+             </div>
           </div>
-          
-           <div className="absolute top-4 left-6 bg-pink-500 text-white px-3 py-1 rounded shadow-md transform -rotate-6">
-                <span className="text-xs font-bold">¥0</span>
-           </div>
 
-          <div className="relative mt-4">
-            <div className="absolute inset-0 rounded-full bg-slate-200 transform scale-105 blur-sm"></div>
+          {/* THE HUGE HANDLE */}
+          <div className="relative mt-2 group">
+            {/* Base Plate Glow */}
+            <div className="absolute inset-0 rounded-full bg-slate-300 transform scale-105 blur-md"></div>
             
             <div 
               ref={knobRef}
-              className={`w-64 h-64 rounded-full bg-gradient-to-br from-slate-100 to-slate-300 shadow-[0_12px_24px_rgba(0,0,0,0.15),inset_0_2px_4px_rgba(255,255,255,0.9)] border-4 border-white flex items-center justify-center cursor-grab active:cursor-grabbing ${hasDispensed ? 'opacity-90 pointer-events-none grayscale-[0.2]' : ''} relative z-10`}
+              className={`w-80 h-80 rounded-full bg-gradient-to-br from-slate-50 to-slate-300 shadow-[0_20px_40px_rgba(0,0,0,0.2),inset_0_2px_10px_rgba(255,255,255,1)] border-[8px] border-white flex items-center justify-center cursor-grab active:cursor-grabbing ${hasDispensed ? 'opacity-80 pointer-events-none grayscale-[0.3]' : ''} relative z-10 transition-transform`}
               style={{ transform: `rotate(${rotation}deg)` }}
               onMouseDown={handleStart}
               onTouchStart={handleStart}
             >
-              <div className="absolute inset-2 rounded-full border-2 border-slate-300 border-dashed opacity-30"></div>
+              {/* Decorative Ring */}
+              <div className="absolute inset-4 rounded-full border-4 border-slate-300 border-dashed opacity-40"></div>
 
-              <div className="absolute w-[90%] h-16 bg-white rounded-2xl shadow-[0_4px_8px_rgba(0,0,0,0.1),inset_0_-4px_4px_rgba(0,0,0,0.05)] flex items-center justify-between px-2">
-                  <div className="w-12 h-12 bg-slate-100 rounded-xl shadow-inner border border-slate-200"></div>
-                  <div className="w-12 h-12 bg-slate-100 rounded-xl shadow-inner border border-slate-200"></div>
+              {/* Handle Bar - Horizontal (Massive) */}
+              <div className="absolute w-[92%] h-24 bg-white rounded-3xl shadow-[0_8px_16px_rgba(0,0,0,0.1),inset_0_-4px_4px_rgba(0,0,0,0.05)] flex items-center justify-between px-2 border border-slate-100">
+                  <div className="w-20 h-20 bg-slate-100 rounded-2xl shadow-inner border border-slate-200"></div>
+                  <div className="w-20 h-20 bg-slate-100 rounded-2xl shadow-inner border border-slate-200"></div>
               </div>
               
-              <div className="absolute h-[90%] w-16 bg-white rounded-2xl shadow-[0_4px_8px_rgba(0,0,0,0.1),inset_0_-4px_4px_rgba(0,0,0,0.05)] flex flex-col items-center justify-between py-2">
-                  <div className="w-12 h-12 bg-slate-100 rounded-xl shadow-inner border border-slate-200"></div>
-                  <div className="w-12 h-12 bg-slate-100 rounded-xl shadow-inner border border-slate-200"></div>
+              {/* Handle Bar - Vertical (Massive) */}
+              <div className="absolute h-[92%] w-24 bg-white rounded-3xl shadow-[0_8px_16px_rgba(0,0,0,0.1),inset_0_-4px_4px_rgba(0,0,0,0.05)] flex flex-col items-center justify-between py-2 border border-slate-100">
+                  <div className="w-20 h-20 bg-slate-100 rounded-2xl shadow-inner border border-slate-200"></div>
+                  <div className="w-20 h-20 bg-slate-100 rounded-2xl shadow-inner border border-slate-200"></div>
               </div>
 
-              <div className="absolute w-24 h-24 bg-gradient-to-br from-slate-200 to-slate-400 rounded-full shadow-[0_4px_10px_rgba(0,0,0,0.2)] flex items-center justify-center z-20 border-4 border-white">
-                 <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-pink-500 to-violet-500 flex items-center justify-center shadow-inner">
-                    <RefreshCcw className="text-white/90 w-8 h-8 drop-shadow-md" />
+              {/* Center Cap */}
+              <div className="absolute w-32 h-32 bg-gradient-to-br from-slate-200 to-slate-400 rounded-full shadow-[0_5px_15px_rgba(0,0,0,0.3)] flex items-center justify-center z-20 border-[6px] border-white">
+                 <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-pink-500 to-violet-500 flex items-center justify-center shadow-inner group-active:scale-95 transition-transform">
+                    <RefreshCcw className="text-white/90 w-10 h-10 drop-shadow-md" />
                  </div>
               </div>
             </div>
             
+            {/* Guide Arrows */}
             {!hasDispensed && (
-              <div className="absolute -inset-8 pointer-events-none opacity-50 z-0">
-                  <div className="w-full h-full animate-spin-slow rounded-full border-t-4 border-r-4 border-pink-400/50"></div>
+              <div className="absolute -inset-10 pointer-events-none opacity-60 z-0">
+                  <div className="w-full h-full animate-spin-slow rounded-full border-t-[8px] border-r-[8px] border-pink-400/60"></div>
               </div>
             )}
           </div>
 
-          <div className="mt-8 flex items-center gap-2 text-slate-400 font-bold tracking-widest text-sm bg-white px-4 py-1 rounded-full shadow-sm">
-             <ArrowDown size={16} className="animate-bounce" />
-             {hasDispensed ? "PICK UP" : "TURN HANDLE"}
-             <ArrowDown size={16} className="animate-bounce" />
-          </div>
-        </div>
-
-        <div className="w-full h-40 bg-slate-200 relative flex items-end justify-center pb-6 overflow-hidden shadow-[inset_0_10px_20px_rgba(0,0,0,0.1)]">
-           <div className="absolute top-0 w-48 h-32 bg-slate-800/20 rounded-b-[3rem] blur-sm transform scale-x-110"></div>
-           <div className="absolute -top-4 w-56 h-36 bg-slate-100 rounded-b-[4rem] shadow-lg z-0 border-b-4 border-slate-300"></div>
-
-           {hasDispensed && capsule && !isOpened && (
-             <button 
-               onClick={() => {
-                 setIsOpened(true);
-                 setTimeout(() => setShowModal(true), 600);
-               }}
-               className="relative z-30 animate-bounce-in cursor-pointer focus:outline-none group transform hover:scale-105 transition-transform"
-               aria-label="カプセルを開く"
-             >
-                <div className={`w-28 h-28 rounded-full border-[6px] border-white shadow-2xl relative overflow-hidden group-hover:shadow-[0_0_30px_rgba(255,255,255,0.8)] transition-shadow`}>
-                   <div className={`absolute bottom-0 w-full h-1/2 ${capsule.color}`}></div>
-                   <div className="absolute top-0 w-full h-1/2 bg-white/50 backdrop-blur-sm"></div>
-                   <div className="absolute top-1/2 w-full h-[3px] bg-black/10 -translate-y-1/2"></div>
-                   
-                   <div className="absolute top-5 left-5 w-8 h-5 bg-white/80 rounded-full blur-[3px]"></div>
-                   
-                   <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="bg-white/90 text-slate-800 font-black text-sm px-3 py-1 rounded-full shadow-lg animate-pulse tracking-wider">OPEN</span>
-                   </div>
-                </div>
-             </button>
-           )}
-
-           {isOpened && (
-              <div className="relative w-28 h-28 z-20">
-                 <div className={`absolute left-0 top-0 w-14 h-28 bg-gradient-to-r from-gray-100 to-white/90 rounded-l-full border-l-[6px] border-t-[6px] border-b-[6px] border-white shadow-lg transition-all duration-500 -translate-x-10 rotate-[-30deg] opacity-0`}></div>
-                 <div className={`absolute right-0 top-0 w-14 h-28 bg-gradient-to-l from-${capsule.color.replace('bg-', '')} to-white/30 rounded-r-full border-r-[6px] border-t-[6px] border-b-[6px] border-white shadow-lg transition-all duration-500 translate-x-10 rotate-[30deg] opacity-0`}></div>
-              </div>
-           )}
+          <p className="mt-8 text-slate-400 font-bold tracking-[0.2em] text-lg bg-white px-6 py-2 rounded-full shadow-sm animate-pulse border border-slate-200">
+             {hasDispensed ? "TAP THE CAPSULE!" : "TURN RIGHT →"}
+          </p>
         </div>
       </div>
 
-      {hasDispensed && (
-        <div className="fixed bottom-8 z-40 animate-fade-in">
+      {/* --- FLASHY CENTER CAPSULE OVERLAY --- */}
+      {hasDispensed && capsule && !showResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
+            {/* Background Rays Effect */}
+            <div className="absolute inset-0 overflow-hidden flex items-center justify-center">
+                <div className="w-[200vw] h-[200vw] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(255,255,255,0.1)_20deg,transparent_40deg)] animate-spin-slow opacity-50"></div>
+            </div>
+
+            {/* The Huge Pop-out Capsule */}
             <button 
-            onClick={resetGacha}
-            className="px-8 py-4 bg-white/90 backdrop-blur rounded-full font-bold text-slate-600 shadow-xl active:scale-95 transition-transform flex items-center gap-2 hover:bg-white border-2 border-slate-100"
+                onClick={() => {
+                    setShowResult(true); // Open Result
+                }}
+                className="relative z-50 animate-elastic-pop cursor-pointer group focus:outline-none"
             >
-            <RefreshCcw size={20} /> リセット
+                <div className="w-80 h-80 rounded-full border-[12px] border-white shadow-[0_0_100px_rgba(255,255,255,0.5)] relative overflow-hidden group-hover:scale-105 transition-transform duration-300">
+                     {/* Capsule Colors */}
+                     <div className={`absolute bottom-0 w-full h-1/2 ${capsule.color}`}></div>
+                     <div className="absolute top-0 w-full h-1/2 bg-white/40 backdrop-blur-md"></div>
+                     <div className="absolute top-1/2 w-full h-[4px] bg-black/10 -translate-y-1/2"></div>
+                     
+                     {/* Highlights */}
+                     <div className="absolute top-12 left-12 w-20 h-12 bg-white/70 rounded-full blur-[8px]"></div>
+
+                     {/* Text Prompt */}
+                     <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="bg-white text-slate-900 font-black text-2xl px-8 py-3 rounded-full shadow-2xl animate-pulse tracking-widest border-4 border-slate-100 transform -rotate-6">
+                            TAP ME!
+                        </span>
+                     </div>
+                </div>
             </button>
         </div>
       )}
 
-      {showModal && capsule && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-fade-in">
-          <div className="bg-white w-full max-w-sm rounded-[2.5rem] p-8 text-center relative shadow-2xl animate-pop-up border-[10px] border-slate-100">
+      {/* --- RESULT MODAL --- */}
+      {showResult && capsule && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="bg-white w-full max-w-lg rounded-[3rem] p-10 text-center relative shadow-2xl animate-pop-up border-[12px] border-slate-100">
             
+            {/* Header / Close */}
             <button 
               onClick={resetGacha}
-              className="absolute top-4 right-4 p-2 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
+              className="absolute top-6 right-6 p-3 bg-slate-100 rounded-full hover:bg-slate-200 transition-colors"
             >
-              <X size={24} className="text-slate-500" />
+              <X size={28} className="text-slate-500" />
             </button>
 
-            <div className="mb-8 flex justify-center relative">
-               <div className="absolute inset-0 bg-gradient-to-r from-pink-200 to-violet-200 blur-2xl opacity-50 rounded-full"></div>
-              <div className={`relative p-8 rounded-full ${capsule.color} text-white shadow-xl ring-8 ring-white transform rotate-3`}>
-                <Sparkles size={48} />
+            {/* Icon */}
+            <div className="mb-10 flex justify-center relative">
+               <div className="absolute inset-0 bg-gradient-to-r from-pink-300 to-violet-300 blur-3xl opacity-60 rounded-full transform scale-150"></div>
+              <div className={`relative p-10 rounded-full ${capsule.color} text-white shadow-2xl ring-8 ring-white transform rotate-3`}>
+                <Sparkles size={64} />
               </div>
             </div>
 
-            <span className="inline-block px-4 py-1.5 bg-slate-100 text-slate-500 text-xs font-extrabold rounded-full mb-6 uppercase tracking-widest shadow-inner">
+            {/* Category */}
+            <span className="inline-block px-6 py-2 bg-slate-100 text-slate-500 text-sm font-extrabold rounded-full mb-8 uppercase tracking-[0.2em] shadow-inner">
               {capsule.category}
             </span>
 
-            <h2 className="text-2xl font-black text-slate-800 leading-snug mb-10 break-words drop-shadow-sm">
+            {/* Question Text */}
+            <h2 className="text-3xl md:text-4xl font-black text-slate-800 leading-tight mb-12 break-words drop-shadow-sm">
               {capsule.text}
             </h2>
 
-            <div className="space-y-3">
+            {/* Action Button */}
+            <div className="space-y-4">
               <button 
                 onClick={resetGacha}
-                className="w-full py-4 bg-slate-900 text-white font-bold rounded-2xl shadow-xl shadow-slate-300 hover:shadow-2xl hover:-translate-y-1 transition-all flex items-center justify-center gap-2"
+                className="w-full py-5 bg-slate-900 text-white text-xl font-bold rounded-3xl shadow-xl shadow-slate-400/50 hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3"
               >
-                <RefreshCcw size={18} /> 次へ
+                <RefreshCcw size={24} /> 次のガチャへ
               </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* CSS Animations */}
       <style>{`
-        @keyframes bounce-in {
-          0% { transform: translateY(-150px) rotate(180deg); opacity: 0; }
-          50% { transform: translateY(20px) rotate(-10deg); opacity: 1; }
-          70% { transform: translateY(-10px) rotate(5deg); }
-          100% { transform: translateY(0) rotate(0); }
+        @keyframes elastic-pop {
+          0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+          60% { transform: scale(1.1) rotate(10deg); opacity: 1; }
+          80% { transform: scale(0.95) rotate(-5deg); }
+          100% { transform: scale(1) rotate(0deg); }
         }
-        .animate-bounce-in {
-          animation: bounce-in 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        .animate-elastic-pop {
+          animation: elastic-pop 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
         @keyframes pop-up {
           0% { transform: scale(0.8) translateY(20px); opacity: 0; }
@@ -372,7 +393,7 @@ export default function App() {
           to { transform: rotate(360deg); }
         }
         .animate-spin-slow {
-          animation: spin-slow 10s linear infinite;
+          animation: spin-slow 20s linear infinite;
         }
       `}</style>
     </div>
