@@ -1,70 +1,70 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Sparkles, RefreshCcw, X } from 'lucide-react';
+import { Sparkles, RefreshCcw, X, Languages } from 'lucide-react';
 
-// --- データ定義: トークテーマのお題（50個に増量） ---
+// --- データ定義: トークテーマのお題（英語＆日本語のペア 50個） ---
 const TALK_THEMES = [
   // 定番・アイスブレイク
-  { id: 1, text: "人生で一番高かった買い物は？", category: "Money", color: "bg-yellow-400" },
-  { id: 2, text: "子供の頃の将来の夢は？", category: "Past", color: "bg-blue-400" },
-  { id: 3, text: "もし明日世界が終わるなら何食べる？", category: "Food", color: "bg-red-500" },
-  { id: 4, text: "最近あった「小さな幸せ」", category: "Daily", color: "bg-green-400" },
-  { id: 5, text: "実は苦手なもの・こと", category: "Secret", color: "bg-purple-500" },
-  { id: 6, text: "100万円もらったら何に使う？", category: "Dream", color: "bg-amber-400" },
-  { id: 7, text: "初恋のエピソードを少しだけ！", category: "Love", color: "bg-pink-400" },
-  { id: 8, text: "自分を動物に例えると？", category: "Self", color: "bg-orange-400" },
-  { id: 9, text: "スマホの待ち受け画面見せて！", category: "Mobile", color: "bg-sky-400" },
-  { id: 10, text: "今一番行きたい旅行先は？", category: "Travel", color: "bg-cyan-400" },
+  { id: 1, textEn: "What is the most expensive thing you've ever bought?", textJa: "人生で一番高かった買い物は？", category: "Money", color: "bg-yellow-400" },
+  { id: 2, textEn: "What was your childhood dream job?", textJa: "子供の頃の将来の夢は？", category: "Past", color: "bg-blue-400" },
+  { id: 3, textEn: "If the world ended tomorrow, what would be your last meal?", textJa: "もし明日世界が終わるなら何食べる？", category: "Food", color: "bg-red-500" },
+  { id: 4, textEn: "Share a 'small happiness' you experienced recently.", textJa: "最近あった「小さな幸せ」", category: "Daily", color: "bg-green-400" },
+  { id: 5, textEn: "Something you're secretly bad at or dislike.", textJa: "実は苦手なもの・こと", category: "Secret", color: "bg-purple-500" },
+  { id: 6, textEn: "What would you do if you were given $10,000?", textJa: "100万円もらったら何に使う？", category: "Dream", color: "bg-amber-400" },
+  { id: 7, textEn: "Share a little story about your first love!", textJa: "初恋のエピソードを少しだけ！", category: "Love", color: "bg-pink-400" },
+  { id: 8, textEn: "If you were an animal, what would you be?", textJa: "自分を動物に例えると？", category: "Self", color: "bg-orange-400" },
+  { id: 9, textEn: "Show us your phone's lock screen!", textJa: "スマホの待ち受け画面見せて！", category: "Mobile", color: "bg-sky-400" },
+  { id: 10, textEn: "Where do you want to travel to the most right now?", textJa: "今一番行きたい旅行先は？", category: "Travel", color: "bg-cyan-400" },
   
   // 趣味・嗜好
-  { id: 11, text: "最近ハマっている推しは？", category: "Hobby", color: "bg-fuchsia-400" },
-  { id: 12, text: "人生ベスト映画 or ドラマ", category: "Culture", color: "bg-indigo-400" },
-  { id: 13, text: "理想の休日の過ごし方", category: "Life", color: "bg-emerald-400" },
-  { id: 14, text: "カラオケの十八番は？", category: "Music", color: "bg-rose-400" },
-  { id: 15, text: "死ぬまでに一度はやってみたいこと", category: "BucketList", color: "bg-teal-400" },
-  { id: 16, text: "コンビニでつい買ってしまうもの", category: "Daily", color: "bg-orange-300" },
-  { id: 17, text: "YouTuber誰よく見る？", category: "Media", color: "bg-red-400" },
-  { id: 18, text: "好きな「匂い」教えて", category: "Sense", color: "bg-lime-400" },
-  { id: 19, text: "家の中で一番落ち着く場所", category: "Home", color: "bg-slate-400" },
-  { id: 20, text: "学生時代の部活動の思い出", category: "School", color: "bg-blue-500" },
+  { id: 11, textEn: "Who or what are you currently obsessed with?", textJa: "最近ハマっている推しは？", category: "Hobby", color: "bg-fuchsia-400" },
+  { id: 12, textEn: "Your all-time favorite movie or TV show.", textJa: "人生ベスト映画 or ドラマ", category: "Culture", color: "bg-indigo-400" },
+  { id: 13, textEn: "How would you spend your ideal day off?", textJa: "理想の休日の過ごし方", category: "Life", color: "bg-emerald-400" },
+  { id: 14, textEn: "What's your go-to karaoke song?", textJa: "カラオケの十八番は？", category: "Music", color: "bg-rose-400" },
+  { id: 15, textEn: "Name one thing on your bucket list.", textJa: "死ぬまでに一度はやってみたいこと", category: "BucketList", color: "bg-teal-400" },
+  { id: 16, textEn: "Something you can't help but buy at the convenience store.", textJa: "コンビニでつい買ってしまうもの", category: "Daily", color: "bg-orange-300" },
+  { id: 17, textEn: "Which YouTubers or creators do you watch the most?", textJa: "YouTuber誰よく見る？", category: "Media", color: "bg-red-400" },
+  { id: 18, textEn: "What is your favorite smell?", textJa: "好きな「匂い」教えて", category: "Sense", color: "bg-lime-400" },
+  { id: 19, textEn: "The most relaxing spot in your home.", textJa: "家の中で一番落ち着く場所", category: "Home", color: "bg-slate-400" },
+  { id: 20, textEn: "A memorable story from your school club activities.", textJa: "学生時代の部活動の思い出", category: "School", color: "bg-blue-500" },
 
   // 深掘り・もしも
-  { id: 21, text: "特殊能力が一つもらえるなら？", category: "Fantasy", color: "bg-indigo-500" },
-  { id: 22, text: "あなたの「座右の銘」は？", category: "Motto", color: "bg-rose-500" },
-  { id: 23, text: "タイムマシンで過去に戻るならいつ？", category: "If", color: "bg-violet-400" },
-  { id: 24, text: "自分にご褒美をあげるなら？", category: "Reward", color: "bg-yellow-300" },
-  { id: 25, text: "無人島に一つだけ持っていくなら？", category: "Survival", color: "bg-green-500" },
-  { id: 26, text: "生まれ変わるなら男？女？それ以外？", category: "Reborn", color: "bg-cyan-500" },
-  { id: 27, text: "宝くじで10億円当たったら仕事辞める？", category: "Money", color: "bg-amber-300" },
-  { id: 28, text: "誰にも言っていない黒歴史...", category: "Secret", color: "bg-gray-600" },
-  { id: 29, text: "ここだけの話、実は〇〇フェチです", category: "Fetish", color: "bg-pink-500" },
-  { id: 30, text: "最近泣いたこと", category: "Emotion", color: "bg-blue-300" },
+  { id: 21, textEn: "If you could have one superpower, what would it be?", textJa: "特殊能力が一つもらえるなら？", category: "Fantasy", color: "bg-indigo-500" },
+  { id: 22, textEn: "What is your life motto?", textJa: "あなたの「座右の銘」は？", category: "Motto", color: "bg-rose-500" },
+  { id: 23, textEn: "If you had a time machine, what era would you go back to?", textJa: "タイムマシンで過去に戻るならいつ？", category: "If", color: "bg-violet-400" },
+  { id: 24, textEn: "How do you usually treat yourself?", textJa: "自分にご褒美をあげるなら？", category: "Reward", color: "bg-yellow-300" },
+  { id: 25, textEn: "If you were stranded on a desert island, what one thing would you bring?", textJa: "無人島に一つだけ持っていくなら？", category: "Survival", color: "bg-green-500" },
+  { id: 26, textEn: "If you were reborn, would you be a man, a woman, or something else?", textJa: "生まれ変わるなら男？女？それ以外？", category: "Reborn", color: "bg-cyan-500" },
+  { id: 27, textEn: "Would you quit your job if you won the lottery?", textJa: "宝くじで10億円当たったら仕事辞める？", category: "Money", color: "bg-amber-300" },
+  { id: 28, textEn: "A dark, embarrassing past you haven't told anyone...", textJa: "誰にも言っていない黒歴史...", category: "Secret", color: "bg-gray-600" },
+  { id: 29, textEn: "Just between us, I actually have a fetish for...", textJa: "ここだけの話、実は〇〇フェチです", category: "Fetish", color: "bg-pink-500" },
+  { id: 30, textEn: "When was the last time you cried and why?", textJa: "最近泣いたこと", category: "Emotion", color: "bg-blue-300" },
 
   // 恋愛・人間関係
-  { id: 31, text: "異性のどんな仕草に弱い？", category: "Love", color: "bg-pink-300" },
-  { id: 32, text: "理想のデートプラン", category: "Date", color: "bg-rose-300" },
-  { id: 33, text: "恋人・パートナーに求める条件3つ", category: "Love", color: "bg-red-300" },
-  { id: 34, text: "今までで一番嬉しかったプレゼント", category: "Gift", color: "bg-orange-200" },
-  { id: 35, text: "家族の変なルールある？", category: "Family", color: "bg-green-300" },
-  { id: 36, text: "尊敬する人は誰？", category: "Respect", color: "bg-purple-300" },
-  { id: 37, text: "言われて一番嬉しかった褒め言葉", category: "Happy", color: "bg-yellow-200" },
-  { id: 38, text: "友達になる人に求めること", category: "Friend", color: "bg-teal-300" },
-  { id: 39, text: "第一印象、どう思われがち？", category: "Impression", color: "bg-indigo-300" },
-  { id: 40, text: "「運命」って信じる？", category: "Fate", color: "bg-violet-300" },
+  { id: 31, textEn: "What gesture from the opposite sex makes your heart skip a beat?", textJa: "異性のどんな仕草に弱い？", category: "Love", color: "bg-pink-300" },
+  { id: 32, textEn: "Describe your ideal date plan.", textJa: "理想のデートプラン", category: "Date", color: "bg-rose-300" },
+  { id: 33, textEn: "What are your top 3 requirements for a romantic partner?", textJa: "恋人・パートナーに求める条件3つ", category: "Love", color: "bg-red-300" },
+  { id: 34, textEn: "What is the best gift you've ever received?", textJa: "今までで一番嬉しかったプレゼント", category: "Gift", color: "bg-orange-200" },
+  { id: 35, textEn: "Are there any weird rules in your family?", textJa: "家族の変なルールある？", category: "Family", color: "bg-green-300" },
+  { id: 36, textEn: "Who is someone you deeply respect?", textJa: "尊敬する人は誰？", category: "Respect", color: "bg-purple-300" },
+  { id: 37, textEn: "What is the best compliment you've ever received?", textJa: "言われて一番嬉しかった褒め言葉", category: "Happy", color: "bg-yellow-200" },
+  { id: 38, textEn: "What do you look for in a friend?", textJa: "友達になる人に求めること", category: "Friend", color: "bg-teal-300" },
+  { id: 39, textEn: "What do people usually think of you at first impression?", textJa: "第一印象、どう思われがち？", category: "Impression", color: "bg-indigo-300" },
+  { id: 40, textEn: "Do you believe in destiny?", textJa: "「運命」って信じる？", category: "Fate", color: "bg-violet-300" },
 
   // その他
-  { id: 41, text: "スマホの写真フォルダの最新の一枚は？", category: "Photo", color: "bg-sky-300" },
-  { id: 42, text: "カバンの中身、見せて！", category: "Bag", color: "bg-stone-400" },
-  { id: 43, text: "最近怒ったことある？", category: "Anger", color: "bg-red-600" },
-  { id: 44, text: "明日から1ヶ月休みなら何する？", category: "Vacation", color: "bg-emerald-300" },
-  { id: 45, text: "おすすめのストレス解消法", category: "Relax", color: "bg-lime-300" },
-  { id: 46, text: "地味に自慢できる特技", category: "Skill", color: "bg-orange-500" },
-  { id: 47, text: "幽霊は信じる？信じない？", category: "Ghost", color: "bg-slate-700" },
-  { id: 48, text: "好きなおにぎりの具は？", category: "Food", color: "bg-white" },
-  { id: 49, text: "寝る時の服装は？", category: "Sleep", color: "bg-blue-200" },
-  { id: 50, text: "今、一番会いたい人は？", category: "Person", color: "bg-pink-600" },
+  { id: 41, textEn: "What is the most recent photo in your phone's camera roll?", textJa: "スマホの写真フォルダの最新の一枚は？", category: "Photo", color: "bg-sky-300" },
+  { id: 42, textEn: "Show us what's inside your bag!", textJa: "カバンの中身、見せて！", category: "Bag", color: "bg-stone-400" },
+  { id: 43, textEn: "What made you angry recently?", textJa: "最近怒ったことある？", category: "Anger", color: "bg-red-600" },
+  { id: 44, textEn: "If you had a month off starting tomorrow, what would you do?", textJa: "明日から1ヶ月休みなら何する？", category: "Vacation", color: "bg-emerald-300" },
+  { id: 45, textEn: "What is your recommended way to relieve stress?", textJa: "おすすめのストレス解消法", category: "Relax", color: "bg-lime-300" },
+  { id: 46, textEn: "Do you have a weird but cool flex or hidden talent?", textJa: "地味に自慢できる特技", category: "Skill", color: "bg-orange-500" },
+  { id: 47, textEn: "Do you believe in ghosts?", textJa: "幽霊は信じる？信じない？", category: "Ghost", color: "bg-slate-700" },
+  { id: 48, textEn: "What's your favorite rice ball (onigiri) filling?", textJa: "好きなおにぎりの具は？", category: "Food", color: "bg-white" },
+  { id: 49, textEn: "What do you usually wear to sleep?", textJa: "寝る時の服装は？", category: "Sleep", color: "bg-blue-200" },
+  { id: 50, textEn: "Who do you want to meet the most right now?", textJa: "今、一番会いたい人は？", category: "Person", color: "bg-pink-600" },
 ];
 
-// --- コンポーネント: カプセル ---
+// --- Component: Capsule ---
 const CapsuleDisplay = ({ color, style, size = 80 }) => (
   <div 
     className="absolute rounded-full flex items-center justify-center overflow-hidden shadow-lg"
@@ -91,12 +91,13 @@ export default function App() {
   const [hasDispensed, setHasDispensed] = useState(false);
   const [capsule, setCapsule] = useState(null);
   const [showResult, setShowResult] = useState(false);
+  const [showJa, setShowJa] = useState(false); // 日本語表示の切り替えステート
   
   const knobRef = useRef(null);
   const lastAngleRef = useRef(0);
   const cumulativeRotationRef = useRef(0);
 
-  // 在庫生成
+  // Generate Inventory
   const generateInventory = () => {
     return Array.from({ length: 45 }).map((_, i) => ({
       id: i,
@@ -112,20 +113,18 @@ export default function App() {
 
   const [inventory, setInventory] = useState(generateInventory());
 
-  // --- ハンドル回転ロジックの改善 ---
+  // --- Handle Rotation Logic ---
   const getAngle = (clientX, clientY) => {
     if (!knobRef.current) return 0;
     const rect = knobRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    // Math.atan2の結果（ラジアン）を度数に変換
     return Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI);
   };
 
   const handleStart = (e) => {
     if (hasDispensed) return;
     setIsDragging(true);
-    // スクロール防止
     if(e.cancelable) e.preventDefault();
     
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -136,7 +135,6 @@ export default function App() {
   const handleMove = useCallback((e) => {
     if (!isDragging || hasDispensed) return;
     
-    // ★重要: iPadでの画面スクロールを完全に防ぐ
     if(e.cancelable) e.preventDefault();
 
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -145,7 +143,6 @@ export default function App() {
     const currentAngle = getAngle(clientX, clientY);
     let delta = currentAngle - lastAngleRef.current;
 
-    // 角度の急激な変化（180度またぎ）の補正
     if (delta > 180) delta -= 360;
     if (delta < -180) delta += 360;
 
@@ -155,9 +152,7 @@ export default function App() {
     cumulativeRotationRef.current += delta;
     lastAngleRef.current = currentAngle;
 
-    // 振動（頻度を調整してスムーズに）
     if (Math.abs(cumulativeRotationRef.current) % 60 < 10 && navigator.vibrate) {
-       // iOSではvibrateは無視されますが、Android等のために残します
        navigator.vibrate(5);
     }
 
@@ -189,6 +184,7 @@ export default function App() {
     setHasDispensed(false);
     setCapsule(null);
     setShowResult(false);
+    setShowJa(false); // リセット時に日本語表示も初期化（英語に戻る）
     cumulativeRotationRef.current = 0;
     
     if (inventory.length < 20) {
@@ -196,7 +192,6 @@ export default function App() {
     }
   };
 
-  // イベントリスナーの登録（Window全体でマウス/タッチを追跡）
   useEffect(() => {
     if (isDragging) {
       window.addEventListener('mousemove', handleMove, { passive: false });
@@ -218,7 +213,7 @@ export default function App() {
       {/* Background Effect */}
       <div className="fixed inset-0 pointer-events-none opacity-40 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-700 via-slate-900 to-black"></div>
 
-      {/* ★タイトル修正: インパクト大、極太、アニメーション */}
+      {/* Header */}
       <header className="relative z-20 mb-6 text-center w-full">
         <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-pink-200 to-purple-400 drop-shadow-[0_4px_0_rgba(0,0,0,0.5)] animate-heartbeat font-outline">
           TALK GACHA
@@ -261,7 +256,6 @@ export default function App() {
 
         {/* Bottom: Control Panel */}
         <div className="w-full h-auto min-h-[380px] bg-gradient-to-b from-slate-100 to-slate-200 py-8 flex flex-col items-center justify-center relative z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
-          
           <div className="w-full h-3 bg-slate-300 absolute top-0 border-b border-white/50"></div>
           <div className="w-full h-3 bg-slate-300 absolute bottom-0 border-t border-white/50"></div>
 
@@ -353,41 +347,59 @@ export default function App() {
         </div>
       )}
 
-      {/* --- RESULT MODAL (閉じるボタン修正済み) --- */}
+      {/* --- RESULT MODAL (PC横長対応・JP切替機能付き) --- */}
       {showResult && capsule && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-          <div className="bg-white w-full max-w-lg rounded-[3rem] p-10 text-center relative shadow-2xl animate-pop-up border-[12px] border-slate-100">
+          {/* 横幅を大幅に拡大 (max-w-4xl) して例文が1行に収まりやすく調整 */}
+          <div className="bg-white w-full max-w-5xl rounded-[3rem] p-10 md:p-14 text-center relative shadow-2xl animate-pop-up border-[12px] border-slate-100 flex flex-col items-center">
             
-            {/* ★閉じるボタンの修正: 判定を大きく、z-indexを確実に */}
             <button 
               onClick={resetGacha}
-              className="absolute top-4 right-4 p-4 bg-slate-200 rounded-full hover:bg-slate-300 active:bg-slate-400 transition-colors z-50 shadow-md"
-              aria-label="閉じる"
+              className="absolute top-6 right-6 p-4 bg-slate-200 rounded-full hover:bg-slate-300 active:bg-slate-400 transition-colors z-50 shadow-md"
+              aria-label="Close"
             >
               <X size={32} className="text-slate-600" />
             </button>
 
-            <div className="mb-10 flex justify-center relative">
+            <div className="mb-6 flex justify-center relative">
                <div className="absolute inset-0 bg-gradient-to-r from-pink-300 to-violet-300 blur-3xl opacity-60 rounded-full transform scale-150 animate-pulse"></div>
-              <div className={`relative p-10 rounded-full ${capsule.color} text-white shadow-2xl ring-8 ring-white transform rotate-3`}>
-                <Sparkles size={64} />
+              <div className={`relative p-8 rounded-full ${capsule.color} text-white shadow-2xl ring-8 ring-white transform rotate-3`}>
+                <Sparkles size={48} />
               </div>
             </div>
 
-            <span className="inline-block px-6 py-2 bg-slate-100 text-slate-500 text-sm font-extrabold rounded-full mb-8 uppercase tracking-[0.2em] shadow-inner">
+            <span className="inline-block px-6 py-2 bg-slate-100 text-slate-500 text-sm font-extrabold rounded-full mb-6 uppercase tracking-[0.2em] shadow-inner">
               {capsule.category}
             </span>
 
-            <h2 className="text-3xl md:text-4xl font-black text-slate-800 leading-tight mb-12 break-words drop-shadow-sm">
-              {capsule.text}
-            </h2>
+            {/* テキスト表示エリア（高さを固定してガタつきを防ぐ） */}
+            <div className="w-full min-h-[120px] flex items-center justify-center mb-8 px-4">
+              <h2 className={`font-black text-slate-800 leading-tight drop-shadow-sm transition-all duration-300
+                 ${showJa ? 'text-4xl md:text-5xl' : 'text-3xl md:text-5xl'}
+              `}>
+                {showJa ? capsule.textJa : capsule.textEn}
+              </h2>
+            </div>
 
-            <div className="space-y-4">
+            {/* 翻訳切り替えトグルボタン */}
+            <button
+              onClick={() => setShowJa(!showJa)}
+              className={`mb-10 px-8 py-3 rounded-full font-bold text-lg border-2 shadow-sm transition-all flex items-center gap-3 hover:scale-105 active:scale-95 ${
+                showJa 
+                  ? 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100' 
+                  : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+              }`}
+            >
+              <Languages size={24} />
+              {showJa ? 'Show English' : '日本語訳を表示'}
+            </button>
+
+            <div className="w-full md:w-2/3 mx-auto">
               <button 
                 onClick={resetGacha}
                 className="w-full py-5 bg-slate-900 text-white text-xl font-bold rounded-3xl shadow-xl shadow-slate-400/50 hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3 active:scale-95"
               >
-                <RefreshCcw size={24} /> 次のガチャへ
+                <RefreshCcw size={24} /> NEXT GACHA
               </button>
             </div>
           </div>
@@ -396,11 +408,9 @@ export default function App() {
 
       {/* CSS Animations */}
       <style>{`
-        /* タイトルの極太アウトライン風表現（Webkit） */
         .font-outline {
           -webkit-text-stroke: 2px rgba(255,255,255,0.3);
         }
-
         @keyframes heartbeat {
           0%, 100% { transform: scale(1); }
           15% { transform: scale(1.05); text-shadow: 0 0 20px rgba(255,192,203,0.8); }
