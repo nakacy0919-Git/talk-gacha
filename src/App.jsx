@@ -2,11 +2,11 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { Sparkles, RefreshCcw, X, Languages } from 'lucide-react';
 import { TALK_THEMES, CATEGORIES, TOPIC_MODES, getTopicPool, drawTheme } from './topics.js';
 
-// --- データ定義: トークテーマのお題（英語＆日本語のペア 50個） ---
+// Gacha capsule visual used by the interactive arcade machine.
 // --- Component: Capsule ---
 const CapsuleDisplay = ({ color, style, size = 80 }) => (
   <div 
-    className="absolute rounded-full flex items-center justify-center overflow-hidden shadow-lg"
+    className="tg-mini-capsule absolute rounded-full flex items-center justify-center overflow-hidden shadow-lg"
     style={{
       width: `${size}px`,
       height: `${size}px`,
@@ -178,24 +178,25 @@ export default function App() {
   }, [hasDispensed, showResult]);
 
   return (
-    <div className="min-h-screen bg-slate-900 flex flex-col items-center p-6 font-sans text-slate-800 overflow-hidden select-none">
+    <div className="tg-app">
       
       {/* Background Effect */}
-      <div className="fixed inset-0 pointer-events-none opacity-40 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-700 via-slate-900 to-black"></div>
+      <div className="tg-ambient" aria-hidden="true"></div>
 
       {/* Header */}
-      <header className="relative z-20 mb-6 text-center w-full">
-        <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-br from-white via-pink-200 to-purple-400 drop-shadow-[0_4px_0_rgba(0,0,0,0.5)] animate-heartbeat font-outline">
+      <header className="tg-header">
+        <p className="tg-eyebrow"><Sparkles size={15} aria-hidden="true" /> THE CONVERSATION ARCADE</p>
+        <h1 className="tg-title">
           TALK GACHA
         </h1>
-        <div className="mt-2 h-[2px] w-32 mx-auto bg-white opacity-50 rounded-full"></div>
+        <p className="tg-subtitle">Spin a capsule. Start a conversation. <span>ガチャから広がる英会話</span></p>
       </header>
 
-      <section className="relative z-20 mb-6 text-white text-center space-y-3">
-        <label htmlFor="category" className="block font-bold">Topic mode / 話題のジャンル（全{TALK_THEMES.length}題）</label>
+      <section className="tg-toolbar" aria-label="Topic settings">
+        <label htmlFor="category" className="tg-mode-label">CHOOSE YOUR MODE <span>話題のジャンル・全{TALK_THEMES.length}題</span></label>
         <select id="category" value={category} disabled={hasDispensed || isDragging}
           onChange={e => { setCategory(e.target.value); cumulativeRotationRef.current = 0; setRotation(0); }}
-          className="text-slate-900 rounded-xl p-3 max-w-full">
+          className="tg-mode-select">
            <optgroup label="Recommended modes / おすすめモード">
              {TOPIC_MODES.map(mode => <option key={mode.id} value={mode.id}>{mode.label} ({getTopicPool(TALK_THEMES, mode.id).length})</option>)}
            </optgroup>
@@ -203,17 +204,18 @@ export default function App() {
              {CATEGORIES.map(name => <option key={name} value={name}>{name} ({getTopicPool(TALK_THEMES, name).length})</option>)}
            </optgroup>
         </select>
-        <p>答えたくないお題はパス。架空の話でもOK。個人情報の共有は不要です。</p>
-        <button onClick={dispenseCapsule} disabled={hasDispensed} className="block mx-auto bg-pink-600 rounded-xl px-6 py-3 font-bold disabled:opacity-50">Draw a topic / ボタンで引く</button>
+        <p className="tg-safe-note">答えたくないお題はパスできます。架空の話でもOK。個人情報は不要です。</p>
+        <button onClick={dispenseCapsule} disabled={hasDispensed} className="tg-draw-button"><Sparkles size={19} aria-hidden="true" /> DRAW A TOPIC <span>お題を引く</span></button>
       </section>
       {/* Main Machine Body */}
-      <div className="relative w-full max-w-5xl bg-slate-100 rounded-[60px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.7)] border-4 border-slate-400 overflow-hidden flex flex-col z-10 ring-8 ring-slate-600/50 mt-auto mb-auto">
+      <div className="tg-machine">
         
         {/* Top: Showcase Window */}
-        <div className="w-full h-[40vh] min-h-[350px] relative border-b-[16px] border-slate-300 overflow-hidden bg-slate-200">
-          <div className="absolute inset-0 z-20 pointer-events-none shadow-[inset_0_20px_50px_rgba(0,0,0,0.3)] rounded-t-[54px]"></div>
+        <div className="tg-showcase">
+          <div className="tg-showcase-label"><span><span className="tg-live-dot" aria-hidden="true"></span> TALK STATION</span><span>{TALK_THEMES.length} PROMPTS</span></div>
+          <div className="absolute inset-0 z-20 pointer-events-none shadow-[inset_0_20px_50px_rgba(0,0,0,0.3)] rounded-t-[32px]"></div>
           <div className="absolute inset-0 z-0 p-4 opacity-90">
-             <div className="absolute inset-3 bg-gradient-to-b from-slate-300 to-slate-100 rounded-[50px] border-2 border-slate-300/50 shadow-inner"></div>
+             <div className="tg-showcase-inner"></div>
           </div>
           
           <div className="absolute inset-0 z-10 px-4 pb-4 pointer-events-none">
@@ -240,12 +242,12 @@ export default function App() {
         </div>
 
         {/* Bottom: Control Panel */}
-        <div className="w-full h-auto min-h-[380px] bg-gradient-to-b from-slate-100 to-slate-200 py-8 flex flex-col items-center justify-center relative z-20 shadow-[0_-10px_30px_rgba(0,0,0,0.1)]">
+        <div className="tg-machine-panel">
           <div className="w-full h-3 bg-slate-300 absolute top-0 border-b border-white/50"></div>
           <div className="w-full h-3 bg-slate-300 absolute bottom-0 border-t border-white/50"></div>
 
-          <div className="flex w-full px-12 justify-between items-start absolute top-10">
-             <div className="bg-slate-300 px-6 py-3 rounded-xl shadow-inner border-2 border-slate-400 flex items-center gap-3">
+          <div className="tg-machine-meta">
+             <div className="tg-free-play">
                 <div className="w-3 h-12 bg-slate-900 rounded-full shadow-inner border-2 border-slate-600"></div>
                 <div className="flex flex-col leading-none">
                     <span className="text-[10px] font-bold text-slate-600">INSERT COIN</span>
@@ -253,49 +255,49 @@ export default function App() {
                 </div>
              </div>
              
-             <div className="bg-gradient-to-br from-pink-500 to-purple-600 text-white px-6 py-3 rounded-lg shadow-lg transform rotate-3 border-4 border-white/30">
+             <div className="tg-price">
                   <span className="text-2xl font-black tracking-wider">¥0</span>
              </div>
           </div>
 
           {/* THE HUGE HANDLE */}
-          <div className="relative mt-6 group">
+          <div className="tg-handle-wrap group">
             <div className="absolute inset-0 rounded-full bg-slate-400 transform scale-105 blur-xl opacity-50"></div>
             
             <div 
               ref={knobRef}
-              className={`w-80 h-80 rounded-full bg-gradient-to-br from-slate-100 to-slate-400 shadow-[0_30px_60px_rgba(0,0,0,0.4),inset_0_4px_20px_rgba(255,255,255,0.8)] border-[10px] border-slate-200 flex items-center justify-center cursor-grab active:cursor-grabbing ${hasDispensed ? 'opacity-80 pointer-events-none grayscale-[0.3]' : ''} relative z-10 transition-transform`}
+              className={`tg-knob ${hasDispensed ? 'tg-knob-disabled' : ''}`}
               style={{ transform: `rotate(${rotation}deg)`, touchAction: 'none' }} 
               onMouseDown={handleStart}
               onTouchStart={handleStart}
             >
               <div className="absolute inset-6 rounded-full border-[6px] border-slate-400/30 border-dashed"></div>
 
-              <div className="absolute w-[94%] h-28 bg-gradient-to-b from-white to-slate-200 rounded-3xl shadow-lg flex items-center justify-between px-3 border-2 border-white">
+              <div className="tg-knob-arm tg-knob-arm-horizontal">
                   <div className="w-24 h-24 bg-slate-200 rounded-2xl shadow-inner border border-slate-300"></div>
                   <div className="w-24 h-24 bg-slate-200 rounded-2xl shadow-inner border border-slate-300"></div>
               </div>
               
-              <div className="absolute h-[94%] w-28 bg-gradient-to-r from-white to-slate-200 rounded-3xl shadow-lg flex flex-col items-center justify-between py-3 border-2 border-white">
+              <div className="tg-knob-arm tg-knob-arm-vertical">
                   <div className="w-24 h-24 bg-slate-200 rounded-2xl shadow-inner border border-slate-300"></div>
                   <div className="w-24 h-24 bg-slate-200 rounded-2xl shadow-inner border border-slate-300"></div>
               </div>
 
-              <div className="absolute w-36 h-36 bg-gradient-to-br from-slate-300 to-slate-500 rounded-full shadow-2xl flex items-center justify-center z-20 border-[8px] border-slate-100">
-                 <div className="w-24 h-24 rounded-full bg-gradient-to-tr from-pink-500 via-purple-500 to-indigo-500 flex items-center justify-center shadow-inner border-4 border-white/20">
-                    <RefreshCcw className="text-white w-12 h-12 drop-shadow-lg" />
+              <div className="tg-knob-hub">
+                 <div className="tg-knob-hub-inner">
+                    <RefreshCcw className="text-white tg-knob-icon" />
                  </div>
               </div>
             </div>
             
             {!hasDispensed && (
-              <div className="absolute -inset-12 pointer-events-none opacity-70 z-0">
+              <div className="tg-handle-halo">
                   <div className="w-full h-full animate-spin-slow rounded-full border-t-[12px] border-r-[12px] border-pink-500/50 blur-[4px]"></div>
               </div>
             )}
           </div>
 
-          <p className="mt-10 text-slate-500 font-bold tracking-[0.3em] text-xl bg-white/80 px-8 py-3 rounded-full shadow-md animate-pulse border-2 border-slate-300 backdrop-blur-sm">
+          <p className="tg-turn-instruction">
              {hasDispensed ? "TAP THE CAPSULE!" : "TURN RIGHT →"}
           </p>
         </div>
@@ -303,7 +305,7 @@ export default function App() {
 
       {/* --- FLASHY CENTER CAPSULE OVERLAY --- */}
       {hasDispensed && capsule && !showResult && (
-        <div data-gacha-overlay className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md animate-fade-in">
+        <div data-gacha-overlay className="tg-overlay tg-capsule-overlay animate-fade-in">
             <div className="absolute inset-0 overflow-hidden flex items-center justify-center">
                 <div className="w-[200vw] h-[200vw] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(255,255,255,0.1)_20deg,transparent_40deg)] animate-spin-slow opacity-60 mix-blend-overlay"></div>
             </div>
@@ -312,7 +314,7 @@ export default function App() {
                 aria-label="Open topic / お題を開く"
                 autoFocus
                 onClick={() => setShowResult(true)}
-                className="relative z-50 animate-elastic-pop cursor-pointer group focus:outline-none"
+                className="tg-capsule-trigger animate-elastic-pop group"
             >
                 <div className="w-[min(24rem,85vw)] h-[min(24rem,85vw)] rounded-full border-[16px] border-white shadow-[0_0_150px_rgba(255,255,255,0.6)] relative overflow-hidden group-hover:scale-105 transition-transform duration-300">
                      <div className={`absolute bottom-0 w-full h-1/2 ${capsule.color}`}></div>
@@ -325,48 +327,46 @@ export default function App() {
                      </div>
 
                      <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="bg-white text-slate-900 font-black text-3xl px-10 py-4 rounded-full shadow-2xl animate-pulse tracking-widest border-4 border-slate-100 transform -rotate-6">
+                        <span className="tg-tap-label">
                             TAP ME!
                         </span>
                      </div>
                 </div>
             </button>
-            <button ref={resetButtonRef} onClick={resetGacha} className="absolute bottom-6 z-50 bg-white rounded-xl px-6 py-3">Pass / パス</button>
+            <button ref={resetButtonRef} onClick={resetGacha} className="tg-pass-button">PASS / パス</button>
         </div>
       )}
 
       {/* --- RESULT MODAL (PC横長対応・JP切替機能付き) --- */}
       {showResult && capsule && (
-        <div data-gacha-overlay className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-black/80 backdrop-blur-md animate-fade-in">
+        <div data-gacha-overlay className="tg-overlay tg-result-overlay animate-fade-in">
           {/* 横幅を大幅に拡大 (max-w-4xl) して例文が1行に収まりやすく調整 */}
           <div role="dialog" aria-modal="true" aria-labelledby="topic-title"
-            className="bg-white w-full max-h-[90dvh] overflow-y-auto max-w-5xl rounded-[3rem] p-6 md:p-14 text-center relative shadow-2xl animate-pop-up border-[12px] border-slate-100 flex flex-col items-center">
+            className="tg-result-card animate-pop-up">
             
             <button 
               onClick={resetGacha}
-              className="absolute top-6 right-6 p-4 bg-slate-200 rounded-full hover:bg-slate-300 active:bg-slate-400 transition-colors z-50 shadow-md"
+              className="tg-close-button"
               ref={resetButtonRef}
               aria-label="Close / パス"
             >
               <X size={32} className="text-slate-600" />
             </button>
 
-            <div className="mb-6 flex justify-center relative">
+            <div className="tg-result-icon-wrap">
                <div className="absolute inset-0 bg-gradient-to-r from-pink-300 to-violet-300 blur-3xl opacity-60 rounded-full transform scale-150 animate-pulse"></div>
-              <div className={`relative p-8 rounded-full ${capsule.color} text-white shadow-2xl ring-8 ring-white transform rotate-3`}>
+              <div className={`tg-result-icon ${capsule.color}`}>
                 <Sparkles size={48} />
               </div>
             </div>
 
-            <span className="inline-block px-6 py-2 bg-slate-100 text-slate-500 text-sm font-extrabold rounded-full mb-6 uppercase tracking-[0.2em] shadow-inner">
+            <span className="tg-result-category">
               {capsule.category}
             </span>
 
             {/* テキスト表示エリア（高さを固定してガタつきを防ぐ） */}
-            <div className="w-full min-h-[120px] flex items-center justify-center mb-8 px-4">
-              <h2 id="topic-title" className={`font-black text-slate-800 leading-tight drop-shadow-sm transition-all duration-300
-                 ${showJa ? 'text-4xl md:text-5xl' : 'text-3xl md:text-5xl'}
-              `}>
+            <div className="tg-topic-container">
+              <h2 id="topic-title" className="tg-topic-text">
                 {showJa ? capsule.textJa : capsule.textEn}
               </h2>
             </div>
@@ -374,7 +374,7 @@ export default function App() {
             {/* 翻訳切り替えトグルボタン */}
             <button
               onClick={() => setShowJa(!showJa)}
-              className={`mb-10 px-8 py-3 rounded-full font-bold text-lg border-2 shadow-sm transition-all flex items-center gap-3 hover:scale-105 active:scale-95 ${
+              className={`tg-language-toggle ${
                 showJa 
                   ? 'bg-indigo-50 text-indigo-600 border-indigo-200 hover:bg-indigo-100' 
                   : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
@@ -384,15 +384,15 @@ export default function App() {
               {showJa ? 'Show English' : '日本語訳を表示'}
             </button>
 
-            <div className="mb-6 bg-indigo-50 rounded-2xl p-4 text-left w-full">
-              <p className="font-bold">Keep talking / 会話を広げよう</p>
+            <div className="tg-followup-box">
+              <p className="tg-followup-title">KEEP TALKING <span>会話を広げよう</span></p>
               <p>Why? / なぜ？ · Can you give an example? / 例えば？ · What about you? / あなたは？</p>
               <p className="mt-2">I think … because … / 私は…と思います。理由は…</p>
             </div>
-            <div className="w-full md:w-2/3 mx-auto">
+            <div className="tg-next-wrap">
               <button 
                 onClick={resetGacha}
-                className="w-full py-5 bg-slate-900 text-white text-xl font-bold rounded-3xl shadow-xl shadow-slate-400/50 hover:shadow-2xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3 active:scale-95"
+                className="tg-next-button"
               >
                 <RefreshCcw size={24} /> NEXT GACHA
               </button>
