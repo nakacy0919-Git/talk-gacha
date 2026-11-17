@@ -1,69 +1,8 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Sparkles, RefreshCcw, X, Languages } from 'lucide-react';
+import { TALK_THEMES, CATEGORIES, drawTheme } from './topics.js';
 
 // --- データ定義: トークテーマのお題（英語＆日本語のペア 50個） ---
-const TALK_THEMES = [
-  // 定番・アイスブレイク
-  { id: 1, textEn: "What is the most expensive thing you've ever bought?", textJa: "人生で一番高かった買い物は？", category: "Money", color: "bg-yellow-400" },
-  { id: 2, textEn: "What was your childhood dream job?", textJa: "子供の頃の将来の夢は？", category: "Past", color: "bg-blue-400" },
-  { id: 3, textEn: "If the world ended tomorrow, what would be your last meal?", textJa: "もし明日世界が終わるなら何食べる？", category: "Food", color: "bg-red-500" },
-  { id: 4, textEn: "Share a 'small happiness' you experienced recently.", textJa: "最近あった「小さな幸せ」", category: "Daily", color: "bg-green-400" },
-  { id: 5, textEn: "Something you're secretly bad at or dislike.", textJa: "実は苦手なもの・こと", category: "Secret", color: "bg-purple-500" },
-  { id: 6, textEn: "What would you do if you were given $10,000?", textJa: "100万円もらったら何に使う？", category: "Dream", color: "bg-amber-400" },
-  { id: 7, textEn: "Share a little story about your first love!", textJa: "初恋のエピソードを少しだけ！", category: "Love", color: "bg-pink-400" },
-  { id: 8, textEn: "If you were an animal, what would you be?", textJa: "自分を動物に例えると？", category: "Self", color: "bg-orange-400" },
-  { id: 9, textEn: "Show us your phone's lock screen!", textJa: "スマホの待ち受け画面見せて！", category: "Mobile", color: "bg-sky-400" },
-  { id: 10, textEn: "Where do you want to travel to the most right now?", textJa: "今一番行きたい旅行先は？", category: "Travel", color: "bg-cyan-400" },
-  
-  // 趣味・嗜好
-  { id: 11, textEn: "Who or what are you currently obsessed with?", textJa: "最近ハマっている推しは？", category: "Hobby", color: "bg-fuchsia-400" },
-  { id: 12, textEn: "Your all-time favorite movie or TV show.", textJa: "人生ベスト映画 or ドラマ", category: "Culture", color: "bg-indigo-400" },
-  { id: 13, textEn: "How would you spend your ideal day off?", textJa: "理想の休日の過ごし方", category: "Life", color: "bg-emerald-400" },
-  { id: 14, textEn: "What's your go-to karaoke song?", textJa: "カラオケの十八番は？", category: "Music", color: "bg-rose-400" },
-  { id: 15, textEn: "Name one thing on your bucket list.", textJa: "死ぬまでに一度はやってみたいこと", category: "BucketList", color: "bg-teal-400" },
-  { id: 16, textEn: "Something you can't help but buy at the convenience store.", textJa: "コンビニでつい買ってしまうもの", category: "Daily", color: "bg-orange-300" },
-  { id: 17, textEn: "Which YouTubers or creators do you watch the most?", textJa: "YouTuber誰よく見る？", category: "Media", color: "bg-red-400" },
-  { id: 18, textEn: "What is your favorite smell?", textJa: "好きな「匂い」教えて", category: "Sense", color: "bg-lime-400" },
-  { id: 19, textEn: "The most relaxing spot in your home.", textJa: "家の中で一番落ち着く場所", category: "Home", color: "bg-slate-400" },
-  { id: 20, textEn: "A memorable story from your school club activities.", textJa: "学生時代の部活動の思い出", category: "School", color: "bg-blue-500" },
-
-  // 深掘り・もしも
-  { id: 21, textEn: "If you could have one superpower, what would it be?", textJa: "特殊能力が一つもらえるなら？", category: "Fantasy", color: "bg-indigo-500" },
-  { id: 22, textEn: "What is your life motto?", textJa: "あなたの「座右の銘」は？", category: "Motto", color: "bg-rose-500" },
-  { id: 23, textEn: "If you had a time machine, what era would you go back to?", textJa: "タイムマシンで過去に戻るならいつ？", category: "If", color: "bg-violet-400" },
-  { id: 24, textEn: "How do you usually treat yourself?", textJa: "自分にご褒美をあげるなら？", category: "Reward", color: "bg-yellow-300" },
-  { id: 25, textEn: "If you were stranded on a desert island, what one thing would you bring?", textJa: "無人島に一つだけ持っていくなら？", category: "Survival", color: "bg-green-500" },
-  { id: 26, textEn: "If you were reborn, would you be a man, a woman, or something else?", textJa: "生まれ変わるなら男？女？それ以外？", category: "Reborn", color: "bg-cyan-500" },
-  { id: 27, textEn: "Would you quit your job if you won the lottery?", textJa: "宝くじで10億円当たったら仕事辞める？", category: "Money", color: "bg-amber-300" },
-  { id: 28, textEn: "A dark, embarrassing past you haven't told anyone...", textJa: "誰にも言っていない黒歴史...", category: "Secret", color: "bg-gray-600" },
-  { id: 29, textEn: "Just between us, I actually have a fetish for...", textJa: "ここだけの話、実は〇〇フェチです", category: "Fetish", color: "bg-pink-500" },
-  { id: 30, textEn: "When was the last time you cried and why?", textJa: "最近泣いたこと", category: "Emotion", color: "bg-blue-300" },
-
-  // 恋愛・人間関係
-  { id: 31, textEn: "What gesture from the opposite sex makes your heart skip a beat?", textJa: "異性のどんな仕草に弱い？", category: "Love", color: "bg-pink-300" },
-  { id: 32, textEn: "Describe your ideal date plan.", textJa: "理想のデートプラン", category: "Date", color: "bg-rose-300" },
-  { id: 33, textEn: "What are your top 3 requirements for a romantic partner?", textJa: "恋人・パートナーに求める条件3つ", category: "Love", color: "bg-red-300" },
-  { id: 34, textEn: "What is the best gift you've ever received?", textJa: "今までで一番嬉しかったプレゼント", category: "Gift", color: "bg-orange-200" },
-  { id: 35, textEn: "Are there any weird rules in your family?", textJa: "家族の変なルールある？", category: "Family", color: "bg-green-300" },
-  { id: 36, textEn: "Who is someone you deeply respect?", textJa: "尊敬する人は誰？", category: "Respect", color: "bg-purple-300" },
-  { id: 37, textEn: "What is the best compliment you've ever received?", textJa: "言われて一番嬉しかった褒め言葉", category: "Happy", color: "bg-yellow-200" },
-  { id: 38, textEn: "What do you look for in a friend?", textJa: "友達になる人に求めること", category: "Friend", color: "bg-teal-300" },
-  { id: 39, textEn: "What do people usually think of you at first impression?", textJa: "第一印象、どう思われがち？", category: "Impression", color: "bg-indigo-300" },
-  { id: 40, textEn: "Do you believe in destiny?", textJa: "「運命」って信じる？", category: "Fate", color: "bg-violet-300" },
-
-  // その他
-  { id: 41, textEn: "What is the most recent photo in your phone's camera roll?", textJa: "スマホの写真フォルダの最新の一枚は？", category: "Photo", color: "bg-sky-300" },
-  { id: 42, textEn: "Show us what's inside your bag!", textJa: "カバンの中身、見せて！", category: "Bag", color: "bg-stone-400" },
-  { id: 43, textEn: "What made you angry recently?", textJa: "最近怒ったことある？", category: "Anger", color: "bg-red-600" },
-  { id: 44, textEn: "If you had a month off starting tomorrow, what would you do?", textJa: "明日から1ヶ月休みなら何する？", category: "Vacation", color: "bg-emerald-300" },
-  { id: 45, textEn: "What is your recommended way to relieve stress?", textJa: "おすすめのストレス解消法", category: "Relax", color: "bg-lime-300" },
-  { id: 46, textEn: "Do you have a weird but cool flex or hidden talent?", textJa: "地味に自慢できる特技", category: "Skill", color: "bg-orange-500" },
-  { id: 47, textEn: "Do you believe in ghosts?", textJa: "幽霊は信じる？信じない？", category: "Ghost", color: "bg-slate-700" },
-  { id: 48, textEn: "What's your favorite rice ball (onigiri) filling?", textJa: "好きなおにぎりの具は？", category: "Food", color: "bg-white" },
-  { id: 49, textEn: "What do you usually wear to sleep?", textJa: "寝る時の服装は？", category: "Sleep", color: "bg-blue-200" },
-  { id: 50, textEn: "Who do you want to meet the most right now?", textJa: "今、一番会いたい人は？", category: "Person", color: "bg-pink-600" },
-];
-
 // --- Component: Capsule ---
 const CapsuleDisplay = ({ color, style, size = 80 }) => (
   <div 
@@ -93,6 +32,10 @@ export default function App() {
   const [showResult, setShowResult] = useState(false);
   const [showJa, setShowJa] = useState(false); // 日本語表示の切り替えステート
   
+  const [category, setCategory] = useState('All');
+  const seenRef = useRef(new Set());
+  const dispensedRef = useRef(false);
+  const resetButtonRef = useRef(null);
   const knobRef = useRef(null);
   const lastAngleRef = useRef(0);
   const cumulativeRotationRef = useRef(0);
@@ -111,7 +54,25 @@ export default function App() {
     })).sort((a, b) => a.top - b.top);
   };
 
-  const [inventory, setInventory] = useState(generateInventory());
+  const [inventory, setInventory] = useState(generateInventory);
+
+  const dispenseCapsule = useCallback(() => {
+    if (dispensedRef.current) return;
+    const theme = drawTheme(TALK_THEMES, category, seenRef.current);
+    if (!theme) return;
+    dispensedRef.current = true;
+    const pool = TALK_THEMES.filter(t => category === 'All' || t.category === category);
+    if (pool.every(t => seenRef.current.has(t.id))) {
+      pool.forEach(t => seenRef.current.delete(t.id));
+    }
+    seenRef.current.add(theme.id);
+    setIsDragging(false);
+    setHasDispensed(true);
+    cumulativeRotationRef.current = 0;
+    setCapsule(theme);
+    setInventory(prev => prev.slice(0, -1));
+    try { navigator.vibrate?.([100, 50, 100]); } catch { /* Optional device feedback */ }
+  }, [category]);
 
   // --- Handle Rotation Logic ---
   const getAngle = (clientX, clientY) => {
@@ -123,7 +84,7 @@ export default function App() {
   };
 
   const handleStart = (e) => {
-    if (hasDispensed) return;
+    if (dispensedRef.current) return;
     setIsDragging(true);
     if(e.cancelable) e.preventDefault();
     
@@ -146,40 +107,27 @@ export default function App() {
     if (delta > 180) delta -= 360;
     if (delta < -180) delta += 360;
 
-    const newRotation = rotation + delta;
-    setRotation(newRotation);
+    setRotation(previous => previous + delta);
     
     cumulativeRotationRef.current += delta;
     lastAngleRef.current = currentAngle;
 
-    if (Math.abs(cumulativeRotationRef.current) % 60 < 10 && navigator.vibrate) {
-       navigator.vibrate(5);
+    if (Math.abs(cumulativeRotationRef.current) % 60 < 10) {
+      try { navigator.vibrate?.(5); } catch { /* Optional device feedback */ }
     }
 
     if (cumulativeRotationRef.current > 360) {
       dispenseCapsule();
     }
-  }, [isDragging, rotation, hasDispensed]);
+  }, [isDragging, hasDispensed, dispenseCapsule]);
 
   const handleEnd = () => {
     setIsDragging(false);
   };
 
-  const dispenseCapsule = () => {
-    setHasDispensed(true);
-    cumulativeRotationRef.current = 0;
-    
-    const theme = TALK_THEMES[Math.floor(Math.random() * TALK_THEMES.length)];
-    setCapsule(theme);
-    setInventory(prev => {
-        const newInv = [...prev];
-        newInv.pop(); 
-        return newInv;
-    });
-    if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-  };
-
   const resetGacha = () => {
+    dispensedRef.current = false;
+    setIsDragging(false);
     setRotation(0);
     setHasDispensed(false);
     setCapsule(null);
@@ -198,14 +146,36 @@ export default function App() {
       window.addEventListener('mouseup', handleEnd);
       window.addEventListener('touchmove', handleMove, { passive: false });
       window.addEventListener('touchend', handleEnd);
+      window.addEventListener('touchcancel', handleEnd);
+      window.addEventListener('blur', handleEnd);
     }
     return () => {
       window.removeEventListener('mousemove', handleMove);
       window.removeEventListener('mouseup', handleEnd);
       window.removeEventListener('touchmove', handleMove);
       window.removeEventListener('touchend', handleEnd);
+      window.removeEventListener('touchcancel', handleEnd);
+      window.removeEventListener('blur', handleEnd);
     };
   }, [isDragging, handleMove]);
+
+  useEffect(() => {
+    if (!hasDispensed) return;
+    const previous = document.activeElement;
+    const overlay = document.querySelector('[data-gacha-overlay]');
+    const buttons = overlay?.querySelectorAll('button');
+    buttons?.[0]?.focus();
+    const onKey = event => {
+      if (event.key === 'Escape') { event.preventDefault(); resetButtonRef.current?.click(); }
+      if (event.key === 'Tab' && buttons?.length) {
+        const first = buttons[0], last = buttons[buttons.length - 1];
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => { document.removeEventListener('keydown', onKey); previous?.focus(); };
+  }, [hasDispensed, showResult]);
 
   return (
     <div className="min-h-screen bg-slate-900 flex flex-col items-center p-6 font-sans text-slate-800 overflow-hidden select-none">
@@ -221,6 +191,17 @@ export default function App() {
         <div className="mt-2 h-[2px] w-32 mx-auto bg-white opacity-50 rounded-full"></div>
       </header>
 
+      <section className="relative z-20 mb-6 text-white text-center space-y-3">
+        <label htmlFor="category" className="block font-bold">Topic / 話題を選ぶ（全{TALK_THEMES.length}題）</label>
+        <select id="category" value={category} disabled={hasDispensed || isDragging}
+          onChange={e => { setCategory(e.target.value); cumulativeRotationRef.current = 0; setRotation(0); }}
+          className="text-slate-900 rounded-xl p-3 max-w-full">
+          <option value="All">All topics / すべて</option>
+          {CATEGORIES.map(name => <option key={name} value={name}>{name} ({TALK_THEMES.filter(t => t.category === name).length})</option>)}
+        </select>
+        <p>答えたくないお題はパス。架空の話でもOK。個人情報の共有は不要です。</p>
+        <button onClick={dispenseCapsule} disabled={hasDispensed} className="block mx-auto bg-pink-600 rounded-xl px-6 py-3 font-bold disabled:opacity-50">Draw a topic / ボタンで引く</button>
+      </section>
       {/* Main Machine Body */}
       <div className="relative w-full max-w-5xl bg-slate-100 rounded-[60px] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.7)] border-4 border-slate-400 overflow-hidden flex flex-col z-10 ring-8 ring-slate-600/50 mt-auto mb-auto">
         
@@ -318,16 +299,18 @@ export default function App() {
 
       {/* --- FLASHY CENTER CAPSULE OVERLAY --- */}
       {hasDispensed && capsule && !showResult && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md animate-fade-in">
+        <div data-gacha-overlay className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md animate-fade-in">
             <div className="absolute inset-0 overflow-hidden flex items-center justify-center">
                 <div className="w-[200vw] h-[200vw] bg-[conic-gradient(from_0deg,transparent_0deg,rgba(255,255,255,0.1)_20deg,transparent_40deg)] animate-spin-slow opacity-60 mix-blend-overlay"></div>
             </div>
 
             <button 
+                aria-label="Open topic / お題を開く"
+                autoFocus
                 onClick={() => setShowResult(true)}
                 className="relative z-50 animate-elastic-pop cursor-pointer group focus:outline-none"
             >
-                <div className="w-96 h-96 rounded-full border-[16px] border-white shadow-[0_0_150px_rgba(255,255,255,0.6)] relative overflow-hidden group-hover:scale-105 transition-transform duration-300">
+                <div className="w-[min(24rem,85vw)] h-[min(24rem,85vw)] rounded-full border-[16px] border-white shadow-[0_0_150px_rgba(255,255,255,0.6)] relative overflow-hidden group-hover:scale-105 transition-transform duration-300">
                      <div className={`absolute bottom-0 w-full h-1/2 ${capsule.color}`}></div>
                      <div className="absolute top-0 w-full h-1/2 bg-white/40 backdrop-blur-md"></div>
                      <div className="absolute top-1/2 w-full h-[6px] bg-black/10 -translate-y-1/2"></div>
@@ -344,19 +327,22 @@ export default function App() {
                      </div>
                 </div>
             </button>
+            <button ref={resetButtonRef} onClick={resetGacha} className="absolute bottom-6 z-50 bg-white rounded-xl px-6 py-3">Pass / パス</button>
         </div>
       )}
 
       {/* --- RESULT MODAL (PC横長対応・JP切替機能付き) --- */}
       {showResult && capsule && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+        <div data-gacha-overlay className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto bg-black/80 backdrop-blur-md animate-fade-in">
           {/* 横幅を大幅に拡大 (max-w-4xl) して例文が1行に収まりやすく調整 */}
-          <div className="bg-white w-full max-w-5xl rounded-[3rem] p-10 md:p-14 text-center relative shadow-2xl animate-pop-up border-[12px] border-slate-100 flex flex-col items-center">
+          <div role="dialog" aria-modal="true" aria-labelledby="topic-title"
+            className="bg-white w-full max-h-[90dvh] overflow-y-auto max-w-5xl rounded-[3rem] p-6 md:p-14 text-center relative shadow-2xl animate-pop-up border-[12px] border-slate-100 flex flex-col items-center">
             
             <button 
               onClick={resetGacha}
               className="absolute top-6 right-6 p-4 bg-slate-200 rounded-full hover:bg-slate-300 active:bg-slate-400 transition-colors z-50 shadow-md"
-              aria-label="Close"
+              ref={resetButtonRef}
+              aria-label="Close / パス"
             >
               <X size={32} className="text-slate-600" />
             </button>
@@ -374,7 +360,7 @@ export default function App() {
 
             {/* テキスト表示エリア（高さを固定してガタつきを防ぐ） */}
             <div className="w-full min-h-[120px] flex items-center justify-center mb-8 px-4">
-              <h2 className={`font-black text-slate-800 leading-tight drop-shadow-sm transition-all duration-300
+              <h2 id="topic-title" className={`font-black text-slate-800 leading-tight drop-shadow-sm transition-all duration-300
                  ${showJa ? 'text-4xl md:text-5xl' : 'text-3xl md:text-5xl'}
               `}>
                 {showJa ? capsule.textJa : capsule.textEn}
@@ -394,6 +380,11 @@ export default function App() {
               {showJa ? 'Show English' : '日本語訳を表示'}
             </button>
 
+            <div className="mb-6 bg-indigo-50 rounded-2xl p-4 text-left w-full">
+              <p className="font-bold">Keep talking / 会話を広げよう</p>
+              <p>Why? / なぜ？ · Can you give an example? / 例えば？ · What about you? / あなたは？</p>
+              <p className="mt-2">I think … because … / 私は…と思います。理由は…</p>
+            </div>
             <div className="w-full md:w-2/3 mx-auto">
               <button 
                 onClick={resetGacha}

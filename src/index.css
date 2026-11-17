@@ -3,9 +3,13 @@
 @tailwind utilities;
 
 body {
-  touch-action: none;
+  touch-action: pan-y;
   overscroll-behavior: none;
   -webkit-user-select: none;
   user-select: none;
   background-color: #e2e8f0;
+}
+button:focus-visible, select:focus-visible { outline: 4px solid #818cf8; outline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }
