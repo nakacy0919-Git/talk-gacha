@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { Sparkles, RefreshCcw, X, Languages } from 'lucide-react';
-import { TALK_THEMES, CATEGORIES, drawTheme } from './topics.js';
+import { TALK_THEMES, CATEGORIES, TOPIC_MODES, getTopicPool, drawTheme } from './topics.js';
 
 // --- データ定義: トークテーマのお題（英語＆日本語のペア 50個） ---
 // --- Component: Capsule ---
@@ -61,7 +61,7 @@ export default function App() {
     const theme = drawTheme(TALK_THEMES, category, seenRef.current);
     if (!theme) return;
     dispensedRef.current = true;
-    const pool = TALK_THEMES.filter(t => category === 'All' || t.category === category);
+    const pool = getTopicPool(TALK_THEMES, category);
     if (pool.every(t => seenRef.current.has(t.id))) {
       pool.forEach(t => seenRef.current.delete(t.id));
     }
@@ -192,12 +192,16 @@ export default function App() {
       </header>
 
       <section className="relative z-20 mb-6 text-white text-center space-y-3">
-        <label htmlFor="category" className="block font-bold">Topic / 話題を選ぶ（全{TALK_THEMES.length}題）</label>
+        <label htmlFor="category" className="block font-bold">Topic mode / 話題のジャンル（全{TALK_THEMES.length}題）</label>
         <select id="category" value={category} disabled={hasDispensed || isDragging}
           onChange={e => { setCategory(e.target.value); cumulativeRotationRef.current = 0; setRotation(0); }}
           className="text-slate-900 rounded-xl p-3 max-w-full">
-          <option value="All">All topics / すべて</option>
-          {CATEGORIES.map(name => <option key={name} value={name}>{name} ({TALK_THEMES.filter(t => t.category === name).length})</option>)}
+           <optgroup label="Recommended modes / おすすめモード">
+             {TOPIC_MODES.map(mode => <option key={mode.id} value={mode.id}>{mode.label} ({getTopicPool(TALK_THEMES, mode.id).length})</option>)}
+           </optgroup>
+           <optgroup label="Detailed categories / 詳細カテゴリ">
+             {CATEGORIES.map(name => <option key={name} value={name}>{name} ({getTopicPool(TALK_THEMES, name).length})</option>)}
+           </optgroup>
         </select>
         <p>答えたくないお題はパス。架空の話でもOK。個人情報の共有は不要です。</p>
         <button onClick={dispenseCapsule} disabled={hasDispensed} className="block mx-auto bg-pink-600 rounded-xl px-6 py-3 font-bold disabled:opacity-50">Draw a topic / ボタンで引く</button>

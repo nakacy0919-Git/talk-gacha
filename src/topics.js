@@ -1,4 +1,5 @@
 import { BASE_THEMES } from './themes.js';
+import { EXTRA_GROUPS } from './extra-topics.js';
 
 // Original bilingual prompts. No personal information or real experiences required.
 const groups = {
@@ -129,10 +130,35 @@ export const TALK_THEMES = [
     prompts.map(([textEn, textJa], index) => ({
       id: 51 + group * 10 + index, textEn, textJa, category, color: 'bg-indigo-400',
     }))),
+  ...Object.entries(EXTRA_GROUPS).flatMap(([category, prompts], group) =>
+    prompts.map(([textEn, textJa], index) => ({
+      id: 151 + group * 10 + index, textEn, textJa, category,
+      color: ['bg-teal-400', 'bg-blue-400', 'bg-violet-400', 'bg-amber-400', 'bg-rose-400'][group],
+    }))),
 ];
 export const CATEGORIES = [...new Set(TALK_THEMES.map(theme => theme.category))].sort();
+
+export const TOPIC_MODES = [
+  { id: 'All', label: 'All topics / すべて', categories: null },
+  { id: 'WarmUp', label: 'Icebreakers / アイスブレイク', categories: ['Daily', 'Food', 'Choices', 'Hobby', 'Life', 'Music', 'Friend', 'Happy', 'Sense', 'Reward', 'DailyChoices'] },
+  { id: 'SchoolLife', label: 'School & teamwork / 学校・協働', categories: ['School', 'Teamwork', 'Challenges', 'Skill'] },
+  { id: 'World', label: 'World & cultures / 世界・文化', categories: ['Exchange', 'Culture', 'Travel', 'Languages', 'Community'] },
+  { id: 'Discussion', label: 'Think & discuss / 考える', categories: ['Technology', 'Environment', 'MediaLiteracy', 'Community', 'Future'] },
+  { id: 'Imagination', label: 'Imagination / 想像する', categories: ['Creativity', 'Fantasy', 'If', 'Dream', 'BucketList'] },
+  { id: 'Goals', label: 'Goals & growth / 目標・成長', categories: ['Future', 'Challenges', 'Motto', 'Dream', 'BucketList'] },
+  { id: 'QuickChoices', label: 'Would you rather? / 二択', categories: ['Choices', 'DailyChoices'] },
+  { id: 'Language', label: 'English practice / 英語練習', categories: ['Languages', 'Exchange', 'School', 'Teamwork'] },
+];
+export function getTopicPool(themes, selection) {
+  if (selection === 'All') return themes;
+  const mode = TOPIC_MODES.find(item => item.id === selection);
+  return themes.filter(theme => mode
+    ? mode.categories.includes(theme.category)
+    : theme.category === selection);
+}
+
 export function drawTheme(themes, category, seen, random = Math.random) {
-  const pool = themes.filter(theme => category === 'All' || theme.category === category);
+  const pool = getTopicPool(themes, category);
   if (!pool.length) return null;
   const unseen = pool.filter(theme => !seen.has(theme.id));
   const choices = unseen.length ? unseen : pool.filter(theme => theme.id !== [...seen].at(-1));
