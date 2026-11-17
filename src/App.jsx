@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Sparkles, RefreshCcw, X, Languages } from 'lucide-react';
+import { Sparkles, RefreshCcw, X, Languages, Settings2, Volume2, VolumeX } from 'lucide-react';
+import { playMechanicalSound } from './gachaSound.js';
 import { TALK_THEMES, CATEGORIES, TOPIC_MODES, getTopicPool, drawTheme } from './topics.js';
 
 // Gacha capsule visual used by the interactive arcade machine.
@@ -33,9 +34,18 @@ export default function App() {
   const [showJa, setShowJa] = useState(false); // 日本語表示の切り替えステート
   
   const [category, setCategory] = useState('All');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const seenRef = useRef(new Set());
   const dispensedRef = useRef(false);
   const resetButtonRef = useRef(null);
+  const settingsButtonRef = useRef(null);
+  const settingsCloseRef = useRef(null);
+  const audioRef = useRef(null);
+  const pointerRef = useRef(null);
+  const draggingRef = useRef(false);
+  const lastToothRef = useRef(0);
   const knobRef = useRef(null);
   const lastAngleRef = useRef(0);
   const cumulativeRotationRef = useRef(0);
@@ -56,8 +66,36 @@ export default function App() {
 
   const [inventory, setInventory] = useState(generateInventory);
 
+
+  const sound = useCallback((kind) => {
+    if (!soundEnabled) return;
+    try {
+      const AudioCtor = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtor) return;
+      let ctx = audioRef.current;
+      if (!ctx || ctx.state === 'closed') {
+        ctx = new AudioCtor();
+        audioRef.current = ctx;
+      }
+      if (ctx.state === 'suspended') void ctx.resume().catch(() => {});
+      playMechanicalSound(ctx, kind);
+    } catch { /* Sound is optional and the machine remains usable. */ }
+  }, [soundEnabled]);
+
+  const vibrate = useCallback((pattern) => {
+    if (!vibrationEnabled) return;
+    try { navigator.vibrate?.(pattern); } catch { /* Device may not support vibration. */ }
+  }, [vibrationEnabled]);
+
+  useEffect(() => () => {
+    if (audioRef.current && audioRef.current.state !== 'closed') {
+      void audioRef.current.close().catch(() => {});
+    }
+    audioRef.current = null;
+  }, []);
+
   const dispenseCapsule = useCallback(() => {
-    if (dispensedRef.current) return;
+    if (dispensedRef.current || settingsOpen) return;
     const theme = drawTheme(TALK_THEMES, category, seenRef.current);
     if (!theme) return;
     dispensedRef.current = true;
@@ -66,98 +104,104 @@ export default function App() {
       pool.forEach(t => seenRef.current.delete(t.id));
     }
     seenRef.current.add(theme.id);
+    draggingRef.current = false;
+    pointerRef.current = null;
     setIsDragging(false);
     setHasDispensed(true);
     cumulativeRotationRef.current = 0;
     setCapsule(theme);
     setInventory(prev => prev.slice(0, -1));
-    try { navigator.vibrate?.([100, 50, 100]); } catch { /* Optional device feedback */ }
-  }, [category]);
+    sound('dispense');
+    vibrate([35, 50, 90]);
+  }, [category, settingsOpen, sound, vibrate]);
 
-  // --- Handle Rotation Logic ---
+  // Pointer Events unify touch, pen, and mouse. Each ratchet tooth is 24 degrees.
   const getAngle = (clientX, clientY) => {
-    if (!knobRef.current) return 0;
-    const rect = knobRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    return Math.atan2(clientY - centerY, clientX - centerX) * (180 / Math.PI);
+    const rect = knobRef.current?.getBoundingClientRect();
+    if (!rect) return 0;
+    return Math.atan2(clientY - rect.top - rect.height / 2, clientX - rect.left - rect.width / 2) * 180 / Math.PI;
   };
-
-  const handleStart = (e) => {
-    if (dispensedRef.current) return;
+  const handleStart = (event) => {
+    if (dispensedRef.current || settingsOpen || draggingRef.current) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    event.preventDefault();
+    draggingRef.current = true;
+    pointerRef.current = event.pointerId;
+    lastAngleRef.current = getAngle(event.clientX, event.clientY);
+    event.currentTarget.setPointerCapture?.(event.pointerId);
     setIsDragging(true);
-    if(e.cancelable) e.preventDefault();
-    
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    lastAngleRef.current = getAngle(clientX, clientY);
+    sound('engage');
   };
-
-  const handleMove = useCallback((e) => {
-    if (!isDragging || hasDispensed) return;
-    
-    if(e.cancelable) e.preventDefault();
-
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-    
-    const currentAngle = getAngle(clientX, clientY);
-    let delta = currentAngle - lastAngleRef.current;
-
+  const handleMove = (event) => {
+    if (!draggingRef.current || pointerRef.current !== event.pointerId || dispensedRef.current) return;
+    event.preventDefault();
+    const angle = getAngle(event.clientX, event.clientY);
+    let delta = angle - lastAngleRef.current;
+    lastAngleRef.current = angle;
     if (delta > 180) delta -= 360;
     if (delta < -180) delta += 360;
-
-    setRotation(previous => previous + delta);
-    
+    // The one-way ratchet advances clockwise, not counterclockwise.
+    if (delta <= 0 || delta > 45) return;
     cumulativeRotationRef.current += delta;
-    lastAngleRef.current = currentAngle;
-
-    if (Math.abs(cumulativeRotationRef.current) % 60 < 10) {
-      try { navigator.vibrate?.(5); } catch { /* Optional device feedback */ }
+    setRotation(cumulativeRotationRef.current);
+    const tooth = Math.floor(cumulativeRotationRef.current / 24);
+    if (tooth > lastToothRef.current) {
+      lastToothRef.current = tooth;
+      sound('tick');
+      vibrate(4);
     }
-
-    if (cumulativeRotationRef.current > 360) {
-      dispenseCapsule();
-    }
-  }, [isDragging, hasDispensed, dispenseCapsule]);
-
-  const handleEnd = () => {
-    setIsDragging(false);
+    if (cumulativeRotationRef.current >= 360) dispenseCapsule();
   };
-
+  const handleEnd = (event) => {
+    if (pointerRef.current !== event.pointerId) return;
+    draggingRef.current = false;
+    pointerRef.current = null;
+    setIsDragging(false);
+    if (event.currentTarget.hasPointerCapture?.(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+  };
   const resetGacha = () => {
+    draggingRef.current = false;
+    pointerRef.current = null;
     dispensedRef.current = false;
     setIsDragging(false);
     setRotation(0);
     setHasDispensed(false);
     setCapsule(null);
     setShowResult(false);
-    setShowJa(false); // リセット時に日本語表示も初期化（英語に戻る）
+    setShowJa(false);
     cumulativeRotationRef.current = 0;
-    
-    if (inventory.length < 20) {
-        setInventory(generateInventory());
-    }
+    lastToothRef.current = 0;
+    setInventory((prev) => prev.length < 12 ? generateInventory() : prev);
   };
 
   useEffect(() => {
-    if (isDragging) {
-      window.addEventListener('mousemove', handleMove, { passive: false });
-      window.addEventListener('mouseup', handleEnd);
-      window.addEventListener('touchmove', handleMove, { passive: false });
-      window.addEventListener('touchend', handleEnd);
-      window.addEventListener('touchcancel', handleEnd);
-      window.addEventListener('blur', handleEnd);
-    }
-    return () => {
-      window.removeEventListener('mousemove', handleMove);
-      window.removeEventListener('mouseup', handleEnd);
-      window.removeEventListener('touchmove', handleMove);
-      window.removeEventListener('touchend', handleEnd);
-      window.removeEventListener('touchcancel', handleEnd);
-      window.removeEventListener('blur', handleEnd);
+    if (!settingsOpen) return undefined;
+    settingsCloseRef.current?.focus();
+    const onKey = (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setSettingsOpen(false);
+      }
+      if (event.key === 'Tab') {
+        const panel = document.querySelector('[data-tg-settings]');
+        const controls = [...(panel?.querySelectorAll('button,select,input') || [])];
+        if (controls.length && event.shiftKey && document.activeElement === controls[0]) {
+          event.preventDefault();
+          controls[controls.length - 1].focus();
+        } else if (controls.length && !event.shiftKey && document.activeElement === controls[controls.length - 1]) {
+          event.preventDefault();
+          controls[0].focus();
+        }
+      }
     };
-  }, [isDragging, handleMove]);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      settingsButtonRef.current?.focus();
+    };
+  }, [settingsOpen]);
 
   useEffect(() => {
     if (!hasDispensed) return;
@@ -180,39 +224,22 @@ export default function App() {
   return (
     <div className="tg-app">
       
-      {/* Background Effect */}
-      <div className="tg-ambient" aria-hidden="true"></div>
-
-      {/* Header */}
-      <header className="tg-header">
-        <p className="tg-eyebrow"><Sparkles size={15} aria-hidden="true" /> THE CONVERSATION ARCADE</p>
-        <h1 className="tg-title">
-          TALK GACHA
-        </h1>
-        <p className="tg-subtitle">Spin a capsule. Start a conversation. <span>ガチャから広がる英会話</span></p>
+      <header className="tg-topbar">
+        <div className="tg-top-title"><span>✦</span> TALK<span>GACHA</span></div>
+        <button ref={settingsButtonRef} type="button" className="tg-settings-button"
+          aria-label="設定を開く / Open settings" aria-haspopup="dialog" aria-expanded={settingsOpen}
+          disabled={hasDispensed || isDragging} onClick={() => setSettingsOpen(true)}>
+          <Settings2 size={21} aria-hidden="true" /><span>SETTINGS</span>
+        </button>
       </header>
-
-      <section className="tg-toolbar" aria-label="Topic settings">
-        <label htmlFor="category" className="tg-mode-label">CHOOSE YOUR MODE <span>話題のジャンル・全{TALK_THEMES.length}題</span></label>
-        <select id="category" value={category} disabled={hasDispensed || isDragging}
-          onChange={e => { setCategory(e.target.value); cumulativeRotationRef.current = 0; setRotation(0); }}
-          className="tg-mode-select">
-           <optgroup label="Recommended modes / おすすめモード">
-             {TOPIC_MODES.map(mode => <option key={mode.id} value={mode.id}>{mode.label} ({getTopicPool(TALK_THEMES, mode.id).length})</option>)}
-           </optgroup>
-           <optgroup label="Detailed categories / 詳細カテゴリ">
-             {CATEGORIES.map(name => <option key={name} value={name}>{name} ({getTopicPool(TALK_THEMES, name).length})</option>)}
-           </optgroup>
-        </select>
-        <p className="tg-safe-note">答えたくないお題はパスできます。架空の話でもOK。個人情報は不要です。</p>
-        <button onClick={dispenseCapsule} disabled={hasDispensed} className="tg-draw-button"><Sparkles size={19} aria-hidden="true" /> DRAW A TOPIC <span>お題を引く</span></button>
-      </section>
+      <main className="tg-stage" aria-label="TalkGacha capsule machine">
       {/* Main Machine Body */}
       <div className="tg-machine">
+        <div className="tg-roof"><span className="tg-roof-screw" /><span>TALKGACHA</span></div>
         
         {/* Top: Showcase Window */}
-        <div className="tg-showcase">
-          <div className="tg-showcase-label"><span><span className="tg-live-dot" aria-hidden="true"></span> TALK STATION</span><span>{TALK_THEMES.length} PROMPTS</span></div>
+        <div className="tg-showcase tg-real-glass">
+          <div className="tg-case-glint" aria-hidden="true" />
           <div className="absolute inset-0 z-20 pointer-events-none shadow-[inset_0_20px_50px_rgba(0,0,0,0.3)] rounded-t-[32px]"></div>
           <div className="absolute inset-0 z-0 p-4 opacity-90">
              <div className="tg-showcase-inner"></div>
@@ -242,7 +269,7 @@ export default function App() {
         </div>
 
         {/* Bottom: Control Panel */}
-        <div className="tg-machine-panel">
+        <div className="tg-machine-panel tg-real-front">
           <div className="w-full h-3 bg-slate-300 absolute top-0 border-b border-white/50"></div>
           <div className="w-full h-3 bg-slate-300 absolute bottom-0 border-t border-white/50"></div>
 
@@ -260,48 +287,70 @@ export default function App() {
              </div>
           </div>
 
-          {/* THE HUGE HANDLE */}
-          <div className="tg-handle-wrap group">
-            <div className="absolute inset-0 rounded-full bg-slate-400 transform scale-105 blur-xl opacity-50"></div>
-            
-            <div 
-              ref={knobRef}
-              className={`tg-knob ${hasDispensed ? 'tg-knob-disabled' : ''}`}
-              style={{ transform: `rotate(${rotation}deg)`, touchAction: 'none' }} 
-              onMouseDown={handleStart}
-              onTouchStart={handleStart}
-            >
-              <div className="absolute inset-6 rounded-full border-[6px] border-slate-400/30 border-dashed"></div>
-
-              <div className="tg-knob-arm tg-knob-arm-horizontal">
-                  <div className="w-24 h-24 bg-slate-200 rounded-2xl shadow-inner border border-slate-300"></div>
-                  <div className="w-24 h-24 bg-slate-200 rounded-2xl shadow-inner border border-slate-300"></div>
-              </div>
-              
-              <div className="tg-knob-arm tg-knob-arm-vertical">
-                  <div className="w-24 h-24 bg-slate-200 rounded-2xl shadow-inner border border-slate-300"></div>
-                  <div className="w-24 h-24 bg-slate-200 rounded-2xl shadow-inner border border-slate-300"></div>
-              </div>
-
-              <div className="tg-knob-hub">
-                 <div className="tg-knob-hub-inner">
-                    <RefreshCcw className="text-white tg-knob-icon" />
-                 </div>
-              </div>
-            </div>
-            
-            {!hasDispensed && (
-              <div className="tg-handle-halo">
-                  <div className="w-full h-full animate-spin-slow rounded-full border-t-[12px] border-r-[12px] border-pink-500/50 blur-[4px]"></div>
-              </div>
-            )}
+          {/* Hardware-style chrome dial, molded plastic hand grip, and dispensing hatch */}
+          <div className="tg-dial-unit">
+            <span className="tg-direction">TURN ↻</span>
+            <div className="tg-dial-plate" aria-hidden="true" />
+            <button ref={knobRef} type="button" className={'tg-rotor' + (hasDispensed ? ' tg-rotor-locked' : '')}
+              disabled={hasDispensed}
+              style={{ transform: 'rotate(' + rotation + 'deg)', touchAction: 'none' }}
+              aria-label="ノブを時計回りに一回転させる。Enterキーでもお題を引けます。"
+              onPointerDown={handleStart}
+              onPointerMove={handleMove}
+              onPointerUp={handleEnd}
+              onPointerCancel={handleEnd}
+              onLostPointerCapture={handleEnd}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  dispenseCapsule();
+                }
+              }}>
+              <span className="tg-grip" aria-hidden="true"><span /><span /></span>
+              <span className="tg-grip-hub" aria-hidden="true" />
+            </button>
           </div>
-
-          <p className="tg-turn-instruction">
-             {hasDispensed ? "TAP THE CAPSULE!" : "TURN RIGHT →"}
-          </p>
+          <div className="tg-outlet" aria-hidden="true">
+            <span>CAPSULE OUT</span>
+            <div className="tg-outlet-bezel"><div className="tg-outlet-door">PUSH</div></div>
+          </div>
+          <button type="button" className="tg-draw-fallback" disabled={hasDispensed} onClick={dispenseCapsule}>
+            DRAW <span>お題を引く</span>
+          </button>
         </div>
+        <div className="tg-machine-foot" aria-hidden="true"><i /><i /></div>
       </div>
+      </main>
+
+      {settingsOpen && (
+        <div className="tg-settings-overlay" data-tg-settings>
+          <div className="tg-settings-panel" role="dialog" aria-modal="true" aria-labelledby="tg-settings-title">
+            <div className="tg-settings-heading">
+              <h2 id="tg-settings-title">設定 / SETTINGS</h2>
+              <button ref={settingsCloseRef} type="button" aria-label="設定を閉じる" onClick={() => setSettingsOpen(false)}><X size={24} /></button>
+            </div>
+            <label htmlFor="tg-mode" className="tg-settings-label">TOPIC MODE / 話題を選択</label>
+            <select id="tg-mode" className="tg-settings-select" value={category}
+              onChange={(e) => { setCategory(e.target.value); cumulativeRotationRef.current = 0; lastToothRef.current = 0; setRotation(0); }}>
+              <optgroup label="Recommended / おすすめ">
+                {TOPIC_MODES.map((mode) => <option key={mode.id} value={mode.id}>{mode.label} ({getTopicPool(TALK_THEMES, mode.id).length})</option>)}
+              </optgroup>
+              <optgroup label="Detailed categories / 詳細カテゴリ">
+                {CATEGORIES.map((name) => <option key={name} value={name}>{name} ({getTopicPool(TALK_THEMES, name).length})</option>)}
+              </optgroup>
+            </select>
+            <p className="tg-settings-note">全{TALK_THEMES.length}題。選んだジャンルでお題を引けます。</p>
+            <label className="tg-switch"><span>{soundEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />} 機械音 / Sound</span>
+              <input type="checkbox" checked={soundEnabled} onChange={(e) => setSoundEnabled(e.target.checked)} />
+            </label>
+            <label className="tg-switch"><span>振動 / Vibration</span>
+              <input type="checkbox" checked={vibrationEnabled} onChange={(e) => setVibrationEnabled(e.target.checked)} />
+            </label>
+            <p className="tg-settings-note">答えたくないお題はパスできます。架空の回答でもOKです。</p>
+            <button type="button" className="tg-settings-done" onClick={() => setSettingsOpen(false)}>DONE / 完了</button>
+          </div>
+        </div>
+      )}
 
       {/* --- FLASHY CENTER CAPSULE OVERLAY --- */}
       {hasDispensed && capsule && !showResult && (
