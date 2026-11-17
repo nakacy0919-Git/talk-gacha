@@ -1,16 +1,37 @@
-# React + Vite
+# TalkGacha / トークガチャ
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+学校での英会話・アイスブレイク・国際交流に使える、英語と日本語の会話テーマをランダムに引く無料Webアプリです。ガチャのハンドル操作でも、ボタンでも話題を引けます。
 
-Currently, two official plugins are available:
+## 主な機能
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **200の日英会話テーマ**。追加された50題は言語学習・メディアリテラシー・チームワーク・挑戦・二択の5分野です。
+- **9つのおすすめモード**から授業目的に合わせて選べます。詳細カテゴリによる指定も残しています。
+- 同じ選択範囲のテーマは一巡するまで極力重複しない仕組みです。
+- 質問を英語で表示し、必要なときだけ日本語訳へ切り替えます。
+- 「Why?」「Can you give an example?」など会話を広げるためのヒント付きです。
+- パス可能。実体験を話す必要はなく、架空の回答でも構いません。
 
-## React Compiler
+## 開発と動作確認
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Node.js 22以降の対応環境を推奨します。
 
-## Expanding the ESLint configuration
+```bash
+npm ci
+npm run lint
+npm test
+npm run build
+npm run dev
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Vite + Reactの静的アプリです。アカウント登録、サーバー側データベース、回答の送信・保存機能はありません。抽選履歴は表示中のブラウザセッションのメモリで管理しています。
+
+## 安全性と公開前確認
+
+- 不用意な個人情報の公開を促す質問を見直し済みです。答えたくない質問はパスできます。
+- 依存関係とVercelセキュリティヘッダーの検討内容は [SECURITY_REVIEW.md](./SECURITY_REVIEW.md) を参照してください。
+- PR #1のVercelプレビューが成功しても、スマートフォン実機のタッチ操作や配信ヘッダーの確認まで完了したわけではありません。
+- 公開前にPC・iPad・スマートフォンの操作、英語/日本語切替、パス操作、カテゴリー抽選を確認してください。
+
+## 制作
+
+教材目的の会話促進アプリ TalkGacha。
